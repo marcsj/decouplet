@@ -63,8 +63,8 @@ func findPixelPartner(
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
 			newColor := img.At(x, y)
-			or, og, ob, _ := color.RGBA()
-			r, g, b, _ := newColor.RGBA()
+			or, og, ob, oa := color.RGBA()
+			r, g, b, a := newColor.RGBA()
 			if uint8(r) == uint8(or) + uint8(difference) {
 				return []byte(fmt.Sprintf("r%v,%vr%v,%v",
 					location.x, location.y, x, y)), nil
@@ -73,6 +73,9 @@ func findPixelPartner(
 					location.x, location.y, x, y)), nil
 			} else if uint8(b) == uint8(ob) + uint8(difference) {
 				return []byte(fmt.Sprintf("b%v,%vb%v,%v",
+					location.x, location.y, x, y)), nil
+			} else if uint8(a) == uint8(oa) + uint8(difference) {
+				return []byte(fmt.Sprintf("a%v,%va%v,%v",
 					location.x, location.y, x, y)), nil
 			}
 		}

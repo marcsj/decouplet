@@ -8,14 +8,14 @@ import (
 	"strings"
 )
 
-const rgbString = "rgb"
+const rgbaString = "rgba"
 const errorColorCode = "message does not contain color code"
 const errorLocation = "incorrect text for pixel location"
 
-type RGB string
+type RGBA string
 
 type pixelRef struct {
-	color RGB
+	color    RGBA
 	location location
 }
 
@@ -48,8 +48,8 @@ func TransdecodeImage(message []byte, img image.Image) ([]byte, error){
 	}
 }
 
-func pixelNumber(rgb RGB, color color.Color) uint8 {
-	r, g, b, _ := color.RGBA()
+func pixelNumber(rgb RGBA, color color.Color) uint8 {
+	r, g, b, a := color.RGBA()
 	num := uint8(0)
 	switch rgb[0] {
 	case 'r':
@@ -58,6 +58,8 @@ func pixelNumber(rgb RGB, color color.Color) uint8 {
 		num = uint8(g)
 	case 'b':
 		num = uint8(b)
+	case 'a':
+		num = uint8(a)
 	}
 	return num
 }
@@ -80,12 +82,12 @@ func getPixelPair(message string) ([2]pixelRef, int, error) {
 func getPixelRef(message string) (pixelRef, int, error) {
 	pixelRef := pixelRef{}
 	end := 0
-	if !strings.ContainsAny(message[0:1], rgbString) {
+	if !strings.ContainsAny(message[0:1], rgbaString) {
 		return pixelRef, end, errors.New(errorColorCode)
 	}
-	pixelRef.color = RGB(message[0:1])
+	pixelRef.color = RGBA(message[0:1])
 	for i := 1; i < len(message); i++ {
-		if strings.ContainsAny(message[i:i+1], rgbString) {
+		if strings.ContainsAny(message[i:i+1], rgbaString) {
 			locString := message[1:i]
 			end = i
 			loc, err := getTextLocation(locString)
