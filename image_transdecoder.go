@@ -10,6 +10,7 @@ import (
 
 const rgbString = "rgb"
 const errorColorCode = "message does not contain color code"
+const errorLocation = "incorrect text for pixel location"
 
 type RGB string
 
@@ -110,6 +111,9 @@ func getPixelRef(message string) (pixelRef, int, error) {
 func getTextLocation(loc string) (location, error) {
 	location := location{}
 	locs := strings.Split(loc, ",")
+	if len(locs) < 2 {
+		return location, errors.New(errorLocation)
+	}
 	x, err := strconv.Atoi(locs[0])
 	if err != nil {
 		return location, err
