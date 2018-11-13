@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const rgbaString = "rgba"
+const colorCodes = "rgba"
 const errorColorCode = "message does not contain color code"
 const errorLocation = "incorrect text for pixel location"
 
@@ -82,12 +82,12 @@ func getPixelPair(message string) ([2]pixelRef, int, error) {
 func getPixelRef(message string) (pixelRef, int, error) {
 	pixelRef := pixelRef{}
 	end := 0
-	if !strings.ContainsAny(message[0:1], rgbaString) {
+	if !strings.ContainsAny(message[0:1], colorCodes) {
 		return pixelRef, end, errors.New(errorColorCode)
 	}
 	pixelRef.color = RGBA(message[0:1])
 	for i := 1; i < len(message); i++ {
-		if strings.ContainsAny(message[i:i+1], rgbaString) {
+		if strings.ContainsAny(message[i:i+1], colorCodes) {
 			locString := message[1:i]
 			end = i
 			loc, err := getTextLocation(locString)
