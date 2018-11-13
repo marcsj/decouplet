@@ -63,12 +63,12 @@ func findPixelPartner(
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
 			checkedColor := img.At(x, y)
-			if match, firstColor, secondColor := checkColorMatch(
+			if match, firstType, secondType := checkColorMatch(
 				difference, currentColor, checkedColor); match {
 					return []byte(fmt.Sprintf(
-						"%s%v,%v%s%v%v",
-						firstColor, location.x, location.y,
-						secondColor, x, y)), nil
+						"%s%v,%v%s%v,%v",
+						firstType, location.x, location.y,
+						secondType, x, y)), nil
 			}
 		}
 	}
@@ -95,8 +95,8 @@ func checkColorMatch(
 	}
 	for v := range currentColors {
 		for k := range checkedColors {
-			if uint8(currentColors[k]) ==
-				uint8(currentColors[v]) + uint8(diff) {
+			if checkedColors[k] ==
+				currentColors[v] + uint8(diff) {
 				return true, v, k
 			}
 		}
