@@ -57,28 +57,49 @@ func findBytePattern(char byte, img image.Image) ([]byte, error) {
 func findPixelPartner(
 	location location,
 	difference byte,
-	color color.Color,
+	currentColor color.Color,
 	img image.Image) ([]byte, error) {
 		bounds := img.Bounds()
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
-			newColor := img.At(x, y)
-			or, og, ob, oa := color.RGBA()
-			r, g, b, a := newColor.RGBA()
-			if uint8(r) == uint8(or) + uint8(difference) {
-				return []byte(fmt.Sprintf("r%v,%vr%v,%v",
-					location.x, location.y, x, y)), nil
-			} else if uint8(g) == uint8(og) + uint8(difference) {
-				return []byte(fmt.Sprintf("g%v,%vg%v,%v",
-					location.x, location.y, x, y)), nil
-			} else if uint8(b) == uint8(ob) + uint8(difference) {
-				return []byte(fmt.Sprintf("b%v,%vb%v,%v",
-					location.x, location.y, x, y)), nil
-			} else if uint8(a) == uint8(oa) + uint8(difference) {
-				return []byte(fmt.Sprintf("a%v,%va%v,%v",
-					location.x, location.y, x, y)), nil
+			checkedColor := img.At(x, y)
+			if match, firstColor, secondColor := checkColorMatch(
+				difference, currentColor, checkedColor); match {
+					return []byte(fmt.Sprintf(
+						"%s%v,%v%s%v%v",
+						firstColor, location.x, location.y,
+						secondColor, x, y)), nil
 			}
 		}
 	}
 	return nil, errors.New(errorMatchNotFound)
+}
+
+func checkColorMatch(
+	diff byte,
+	current color.Color,
+	checked color.Color) (bool, string, string) {
+	or, og, ob, oa := current.RGBA()
+	r, g, b, a := checked.RGBA()
+	currentColors := map[string]uint8{
+		"r": uint8(or),
+		"g": uint8(og),
+		"b": uint8(ob),
+		"a": uint8(oa),
+	}
+	checkedColors := map[string]uint8{
+		"r": uint8(r),
+		"g": uint8(g),
+		"b": uint8(b),
+		"a": uint8(a),
+	}
+	for v := range currentColors {
+		for k := range checkedColors {
+			if uint8(currentColors[k]) ==
+				uint8(currentColors[v]) + uint8(diff) {
+				return true, v, k
+			}
+		}
+	}
+	return false, "", ""
 }
