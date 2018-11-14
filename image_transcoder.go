@@ -15,6 +15,11 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
+type colorChecked struct {
+	color string
+	amount uint8
+}
+
 func TranscodeImage(message []byte, img image.Image) ([]byte, error){
 	newMessage := make([]byte, 0)
 	for _, char := range message {
@@ -59,7 +64,7 @@ func findPixelPartner(
 	difference byte,
 	currentColor color.Color,
 	img image.Image) ([]byte, error) {
-		bounds := img.Bounds()
+	bounds := img.Bounds()
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
 			checkedColor := img.At(x, y)
@@ -81,23 +86,49 @@ func checkColorMatch(
 	checked color.Color) (bool, string, string) {
 	or, og, ob, oa := current.RGBA()
 	r, g, b, a := checked.RGBA()
-	currentColors := map[string]uint8{
-		"r": uint8(or),
-		"g": uint8(og),
-		"b": uint8(ob),
-		"a": uint8(oa),
+	currentColors := []colorChecked{
+		colorChecked{
+			color: "r",
+			amount: uint8(or),
+		},
+		colorChecked{
+			color: "g",
+			amount: uint8(og),
+		},
+		colorChecked{
+			color: "b",
+			amount: uint8(ob),
+		},
+		colorChecked{
+			color: "a",
+			amount: uint8(oa),
+		},
 	}
-	checkedColors := map[string]uint8{
-		"r": uint8(r),
-		"g": uint8(g),
-		"b": uint8(b),
-		"a": uint8(a),
+	checkedColors := []colorChecked{
+		colorChecked{
+			color: "r",
+			amount: uint8(r),
+		},
+		colorChecked{
+			color: "g",
+			amount: uint8(g),
+		},
+		colorChecked{
+			color: "b",
+			amount: uint8(b),
+		},
+		colorChecked{
+			color: "a",
+			amount: uint8(a),
+		},
 	}
 	for v := range currentColors {
 		for k := range checkedColors {
-			if checkedColors[k] ==
-				currentColors[v] + uint8(diff) {
-				return true, v, k
+			if checkedColors[k].amount ==
+				currentColors[v].amount + uint8(diff) {
+				return true,
+				currentColors[v].color,
+				currentColors[k].color
 			}
 		}
 	}
