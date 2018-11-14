@@ -17,6 +17,12 @@ and improvements to efficiency and better usage of source objects.
 
 Place images named `test.jpg` and `test.png` in images folder.
 
+### Example
+
+Call the function with an image: `TranscodeImage([]byte("Test"), image)`:  
+Result: `r54,238r3,243r842,140r51,338b823,470b228,193r314,478r114,111`
+
+More detailed implementation can be found in the test files.
 ***
 #### Credit
 
