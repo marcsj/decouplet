@@ -86,6 +86,8 @@ func checkColorMatch(
 	checked color.Color) (bool, string, string) {
 	or, og, ob, oa := current.RGBA()
 	r, g, b, a := checked.RGBA()
+	oc, om, oy, ok := color.RGBToCMYK(uint8(or), uint8(og), uint8(ob))
+	c, m, y, k := color.RGBToCMYK(uint8(r), uint8(g), uint8(b))
 	currentColors := []colorChecked{
 		colorChecked{
 			color: "r",
@@ -102,6 +104,22 @@ func checkColorMatch(
 		colorChecked{
 			color: "a",
 			amount: uint8(oa),
+		},
+		colorChecked{
+			color: "c",
+			amount: uint8(oc),
+		},
+		colorChecked{
+			color: "m",
+			amount: uint8(om),
+		},
+		colorChecked{
+			color: "y",
+			amount: uint8(oy),
+		},
+		colorChecked{
+			color: "k",
+			amount: uint8(ok),
 		},
 	}
 	checkedColors := []colorChecked{
@@ -120,6 +138,22 @@ func checkColorMatch(
 		colorChecked{
 			color: "a",
 			amount: uint8(a),
+		},
+		colorChecked{
+			color: "c",
+			amount: uint8(c),
+		},
+		colorChecked{
+			color: "m",
+			amount: uint8(m),
+		},
+		colorChecked{
+			color: "y",
+			amount: uint8(y),
+		},
+		colorChecked{
+			color: "k",
+			amount: uint8(k),
 		},
 	}
 	for v := range currentColors {
