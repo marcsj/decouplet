@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const colorCodes = "rgba"
+const colorCodes = "rgbacmyk"
 const errorColorCode = "message does not contain color code"
 const errorLocation = "incorrect text for pixel location"
 
@@ -48,8 +48,9 @@ func TransdecodeImage(message []byte, img image.Image) ([]byte, error){
 	}
 }
 
-func pixelNumber(rgb RGBA, color color.Color) uint8 {
-	r, g, b, a := color.RGBA()
+func pixelNumber(rgb RGBA, checkedColor color.Color) uint8 {
+	r, g, b, a := checkedColor.RGBA()
+	c, m, y, k := color.RGBToCMYK(uint8(r), uint8(g), uint8(b))
 	num := uint8(0)
 	switch rgb[0] {
 	case 'r':
@@ -60,6 +61,14 @@ func pixelNumber(rgb RGBA, color color.Color) uint8 {
 		num = uint8(b)
 	case 'a':
 		num = uint8(a)
+	case 'c':
+		num = uint8(c)
+	case 'm':
+		num = uint8(m)
+	case 'y':
+		num = uint8(y)
+	case 'k':
+		num = uint8(k)
 	}
 	return num
 }
