@@ -22,12 +22,12 @@ func TestTransdecodeImage(t *testing.T) {
 		t.Error(err)
 	}
 	message, err := TransdecodeImage([]byte(
-		"r54,238r3,243r842,140r51,338b823,470b228,193r314,478r114,111",
+		"[dcplt-imgtc-0.1]a635,376r1,94r854,100k1,625r212,589k2,624r412,237a0,0",
 		), image)
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log("Message: ", string(message))
+	t.Log("Message:", string(message))
 }
 
 func TestImageMessage(t *testing.T) {
@@ -50,5 +50,5 @@ func TestImageMessage(t *testing.T) {
 	if originalMessage != string(message) {
 		t.Fail()
 	}
-	t.Log("Message: ", string(message))
+	t.Log("Message:", string(message))
 }
