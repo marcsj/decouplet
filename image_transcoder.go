@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+const imageTranscoderName = "imgtc"
 const errorMatchNotFound = "match not found"
 
 func init() {
@@ -22,6 +23,10 @@ type colorChecked struct {
 
 func TranscodeImage(message []byte, img image.Image) ([]byte, error){
 	newMessage := make([]byte, 0)
+	newMessage, err := WriteVersion(imageTranscoderName, newMessage)
+	if err != nil {
+		return newMessage, err
+	}
 	for _, char := range message {
 		msg, err := findBytePattern(char, img)
 		if err != nil {

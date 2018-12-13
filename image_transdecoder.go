@@ -28,6 +28,10 @@ type location struct {
 func TransdecodeImage(message []byte, img image.Image) ([]byte, error){
 	msg := string(message)
 	var translation []byte
+	msg, err := CheckTranscoder(imageTranscoderName, msg)
+	if err != nil {
+		return translation, err
+	}
 	for {
 		pixelRef, end, err := getPixelPair(msg)
 		if err != nil {
