@@ -33,7 +33,7 @@ func TransdecodeImage(message []byte, img image.Image) ([]byte, error){
 		return translation, err
 	}
 	for {
-		pixelRef, end, err := getPixelPair(msg)
+		pixelRef, end, err := getPixelPair(msg, img.Bounds().Max.X)
 		if err != nil {
 			return nil, err
 		}
@@ -77,13 +77,13 @@ func pixelNumber(rgb RGBA, checkedColor color.Color) uint8 {
 	return num
 }
 
-func getPixelPair(message string) ([2]pixelRef, int, error) {
+func getPixelPair(message string, imageWidth int) ([2]pixelRef, int, error) {
 	var pair [2]pixelRef
-	pixel1, newStart, err := getPixelRef(message)
+	pixel1, newStart, err := getPixelRef(message, imageWidth)
 	if err != nil {
 		return pair, 0, err
 	}
-	pixel2, end, err := getPixelRef(message[newStart:])
+	pixel2, end, err := getPixelRef(message[newStart:], imageWidth)
 	if err != nil {
 		return pair, 0, err
 	}
@@ -92,7 +92,7 @@ func getPixelPair(message string) ([2]pixelRef, int, error) {
 	return pair, end+newStart, nil
 }
 
-func getPixelRef(message string) (pixelRef, int, error) {
+func getPixelRef(message string, imageWidth int) (pixelRef, int, error) {
 	pixelRef := pixelRef{}
 	end := 0
 	if !strings.ContainsAny(message[0:1], colorCodes) {
@@ -103,7 +103,7 @@ func getPixelRef(message string) (pixelRef, int, error) {
 		if strings.ContainsAny(message[i:i+1], colorCodes) {
 			locString := message[1:i]
 			end = i
-			loc, err := getTextLocation(locString)
+			loc, err := getTextLocation(locString, imageWidth)
 			if err != nil {
 				return pixelRef, end, err
 			}
@@ -113,7 +113,7 @@ func getPixelRef(message string) (pixelRef, int, error) {
 	}
 	if end == 0 {
 		locString := message[1:]
-		loc, err := getTextLocation(locString)
+		loc, err := getTextLocation(locString, imageWidth)
 		if err != nil {
 			return pixelRef, end, err
 		}
@@ -123,20 +123,13 @@ func getPixelRef(message string) (pixelRef, int, error) {
 	return pixelRef, end, nil
 }
 
-func getTextLocation(loc string) (location, error) {
+func getTextLocation(loc string, imageWidth int) (location, error) {
 	location := location{}
-	locs := strings.Split(loc, ",")
-	if len(locs) < 2 {
-		return location, errors.New(errorLocation)
-	}
-	x, err := strconv.Atoi(locs[0])
+	pixelLoc, err := strconv.Atoi(loc)
 	if err != nil {
 		return location, err
 	}
-	y, err := strconv.Atoi(locs[1])
-	if err != nil {
-		return location, err
-	}
+	x, y := GetCoordinates(pixelLoc, imageWidth)
 	location.x = x
 	location.y = y
 	return location, nil
