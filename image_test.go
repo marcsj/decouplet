@@ -23,7 +23,7 @@ func TestTransdecodeImage(t *testing.T) {
 		t.Error(err)
 	}
 	message, err := TransdecodeImage([]byte(
-		"[dcplt-imgtc-0.1]a635,376r1,94r854,100k1,625r212,589k2,624r412,237a0,0",
+		"[dcplt-imgtc-0.1]g196255r90241k554943k551042c551723k138337r565877k138337",
 		), image)
 	if err != nil {
 		t.Error(err)
