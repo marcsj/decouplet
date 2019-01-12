@@ -23,7 +23,7 @@ func TestTransdecodeImage(t *testing.T) {
 		t.Error(err)
 	}
 	message, err := TransdecodeImage([]byte(
-		"[dcplt-imgtc-0.1]a635,376r1,94r854,100k1,625r212,589k2,624r412,237a0,0",
+		"[dcplt-imgtc-0.2]g196255r90241k554943k551042c551723k138337r565877k138337",
 		), image)
 	if err != nil {
 		t.Error(err)
@@ -64,11 +64,12 @@ func TestImageMessage_Image(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	fileBytes := make([]byte, fileInfo.Size()) //fix this crap
+	fileBytes := make([]byte, fileInfo.Size())
 	_, err = imageFile.Read(fileBytes)
 	if err != nil {
 		t.Error(err)
 	}
+	t.Log("Length of original: ", len(fileBytes))
 	image, err := LoadImage("images/test.jpg")
 	if err != nil {
 		t.Error(err)
@@ -81,6 +82,9 @@ func TestImageMessage_Image(t *testing.T) {
 	message, err := TransdecodeImage(newMessage, image)
 	if err != nil {
 		t.Error(err)
+	}
+	if len(message) != len(fileBytes) {
+		t.Fail()
 	}
 	if string(fileBytes) != string(message) {
 		t.Fail()

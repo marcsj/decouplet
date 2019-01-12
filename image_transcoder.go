@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"log"
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -21,22 +23,52 @@ type colorChecked struct {
 	amount uint8
 }
 
-func TranscodeImage(message []byte, img image.Image) ([]byte, error){
+type byteGroup struct {
+	bytes []byte
+}
+
+func TranscodeImage(message []byte, img image.Image) ([]byte, error) {
 	newMessage := make([]byte, 0)
 	newMessage, err := WriteVersion(imageTranscoderName, newMessage)
 	if err != nil {
 		return newMessage, err
 	}
-	for _, char := range message {
-		msg, err := findBytePattern(char, img)
-		if err != nil {
-			return nil, err
-		}
-		for _, b := range msg {
-			newMessage = append(newMessage, b)
+
+	byteList := make([]byteGroup, len(message))
+	wg := sync.WaitGroup{}
+	wg.Add(len(message))
+
+	for i, b := range message {
+		go getNewBytes(i, b, img, byteList, &wg)
+	}
+	wg.Wait()
+	for _, byteGroup := range byteList {
+		for _, byte := range byteGroup.bytes {
+			newMessage = append(newMessage, byte)
 		}
 	}
 	return newMessage, nil
+}
+
+func getNewBytes(
+	index int,
+	char byte,
+	img image.Image,
+	byteList []byteGroup,
+	group *sync.WaitGroup) {
+
+	byteGroup := byteGroup{
+		bytes: make([]byte, 0),
+	}
+	msg, err := findBytePattern(char, img)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	for _, b := range msg {
+		byteGroup.bytes = append(byteGroup.bytes, b)
+	}
+	byteList[index] = byteGroup
+	group.Done()
 }
 
 func findBytePattern(char byte, img image.Image) ([]byte, error) {
@@ -75,7 +107,8 @@ func findPixelPartner(
 			checkedColor := img.At(x, y)
 			if match, firstType, secondType := checkColorMatch(
 				difference, currentColor, checkedColor); match {
-					firstLocation := GetPixelNumber(location.x, location.y, bounds.Max.X)
+					firstLocation := GetPixelNumber(
+						location.x, location.y, bounds.Max.X)
 					secondLocation := GetPixelNumber(x, y, bounds.Max.X)
 					return []byte(fmt.Sprintf(
 						"%s%v%s%v",
