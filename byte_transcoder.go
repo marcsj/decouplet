@@ -22,6 +22,7 @@ func (keyBytes) KeyType() TranscoderType {
 	return TranscoderType("bytetc")
 }
 
+
 func TranscodeBytes(input []byte, key []byte) ([]byte, error) {
 	return Transcode(
 		input, keyBytes(key), findBytePattern)
