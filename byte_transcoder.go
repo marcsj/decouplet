@@ -3,89 +3,46 @@ package main
 import (
 	"errors"
 	"fmt"
-	"image"
-	"image/color"
-	"log"
 	"math/rand"
-	"sync"
 	"time"
 )
-
-const imageTranscoderName = "imgtc"
-const errorMatchNotFound = "match not found"
 
 func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-type colorChecked struct {
-	color string
+type byteChecked struct {
+	kind string
 	amount uint8
 }
 
-type byteGroup struct {
-	bytes []byte
+type keyBytes []byte
+
+func (keyBytes) KeyType() TranscoderType {
+	return TranscoderType("bytetc")
 }
 
-func TranscodeImage(message []byte, img image.Image) ([]byte, error) {
-	newMessage := make([]byte, 0)
-	newMessage, err := WriteVersion(imageTranscoderName, newMessage)
-	if err != nil {
-		return newMessage, err
-	}
-
-	byteList := make([]byteGroup, len(message))
-	wg := sync.WaitGroup{}
-	wg.Add(len(message))
-
-	for i, b := range message {
-		go getNewBytes(i, b, img, byteList, &wg)
-	}
-	wg.Wait()
-	for _, byteGroup := range byteList {
-		for _, byte := range byteGroup.bytes {
-			newMessage = append(newMessage, byte)
-		}
-	}
-	return newMessage, nil
+func TranscodeBytes(input []byte, key []byte) ([]byte, error) {
+	return Transcode(
+		input, keyBytes(key), findBytePattern)
 }
 
-func getNewBytes(
-	index int,
-	char byte,
-	img image.Image,
-	byteList []byteGroup,
-	group *sync.WaitGroup) {
-
-	byteGroup := byteGroup{
-		bytes: make([]byte, 0),
+func findBytePattern(char byte, key key) ([]byte, error) {
+	bytes, ok := key.(keyBytes); if !ok {
+		return nil, errors.New("failed to cast key")
 	}
-	msg, err := findBytePattern(char, img)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	for _, b := range msg {
-		byteGroup.bytes = append(byteGroup.bytes, b)
-	}
-	byteList[index] = byteGroup
-	group.Done()
-}
+	bounds := len(bytes)
+	startX := rand.Intn(bounds)
+	firstByte := bytes[startX]
 
-func findBytePattern(char byte, img image.Image) ([]byte, error) {
-	bounds := img.Bounds()
-	startX := rand.Intn(bounds.Max.X)
-	startY := rand.Intn(bounds.Max.Y)
-	firstColor := img.At(startX, startY)
-
-	pattern, err := findPixelPartner(
-		location{x: startX, y: startY}, char, firstColor, img)
+	pattern, err := findBytePartner(
+		location{x: startX}, char, byte(firstByte), bytes)
 	if err != nil && err.Error() == errorMatchNotFound {
-		startX = rand.Intn(bounds.Max.X)
-		startY = rand.Intn(bounds.Max.Y)
-		firstColor = img.At(startX, startY)
+		startX = rand.Intn(bounds)
+		firstByte := bytes[startX]
 
-		pattern, err = findPixelPartner(
-			location{x: startX, y: startY}, char, firstColor, img)
+		pattern, err = findBytePartner(
+			location{x: startX}, char, byte(firstByte), bytes)
 		if err != nil {
 			return nil, err
 		}
@@ -96,115 +53,85 @@ func findBytePattern(char byte, img image.Image) ([]byte, error) {
 	return pattern, nil
 }
 
-func findPixelPartner(
+func findBytePartner(
 	location location,
 	difference byte,
-	currentColor color.Color,
-	img image.Image) ([]byte, error) {
-	bounds := img.Bounds()
-	for x := 0; x < bounds.Max.X; x++ {
-		for y := 0; y < bounds.Max.Y; y++ {
-			checkedColor := img.At(x, y)
-			if match, firstType, secondType := checkColorMatch(
-				difference, currentColor, checkedColor); match {
-					firstLocation := GetPixelNumber(
-						location.x, location.y, bounds.Max.X)
-					secondLocation := GetPixelNumber(x, y, bounds.Max.X)
-					return []byte(fmt.Sprintf(
+	currentByte byte,
+	bytes []byte) ([]byte, error) {
+	boundary := len(bytes)
+	for x := 0; x < boundary; x++ {
+		checkedByte := bytes[x]
+		if match, firstType, secondType := checkByteMatch(
+			difference, currentByte, checkedByte); match {
+				return []byte(fmt.Sprintf(
 						"%s%v%s%v",
-						firstType, firstLocation,
-						secondType, secondLocation)), nil
+						firstType, location.x,
+						secondType, x)), nil
 			}
-		}
 	}
 	return nil, errors.New(errorMatchNotFound)
 }
 
-func checkColorMatch(
+func checkByteMatch(
 	diff byte,
-	current color.Color,
-	checked color.Color) (bool, string, string) {
-	or, og, ob, oa := current.RGBA()
-	r, g, b, a := checked.RGBA()
-	oc, om, oy, ok := color.RGBToCMYK(uint8(or), uint8(og), uint8(ob))
-	c, m, y, k := color.RGBToCMYK(uint8(r), uint8(g), uint8(b))
-	currentColors := []colorChecked{
-		colorChecked{
-			color: "r",
-			amount: uint8(or),
-		},
-		colorChecked{
-			color: "g",
-			amount: uint8(og),
-		},
-		colorChecked{
-			color: "b",
-			amount: uint8(ob),
-		},
-		colorChecked{
-			color: "a",
-			amount: uint8(oa),
-		},
-		colorChecked{
-			color: "c",
-			amount: uint8(oc),
-		},
-		colorChecked{
-			color: "m",
-			amount: uint8(om),
-		},
-		colorChecked{
-			color: "y",
-			amount: uint8(oy),
-		},
-		colorChecked{
-			color: "k",
-			amount: uint8(ok),
-		},
-	}
-	checkedColors := []colorChecked{
-		colorChecked{
-			color: "r",
-			amount: uint8(r),
-		},
-		colorChecked{
-			color: "g",
-			amount: uint8(g),
-		},
-		colorChecked{
-			color: "b",
-			amount: uint8(b),
-		},
-		colorChecked{
-			color: "a",
-			amount: uint8(a),
-		},
-		colorChecked{
-			color: "c",
-			amount: uint8(c),
-		},
-		colorChecked{
-			color: "m",
-			amount: uint8(m),
-		},
-		colorChecked{
-			color: "y",
-			amount: uint8(y),
-		},
-		colorChecked{
-			color: "k",
-			amount: uint8(k),
-		},
-	}
-	for v := range currentColors {
-		for k := range checkedColors {
-			if checkedColors[k].amount ==
-				currentColors[v].amount + uint8(diff) {
+	current byte,
+	checked byte) (bool, string, string) {
+	currentBytes := getByteChecks(current)
+	checkedBytes := getByteChecks(checked)
+	for v := range currentBytes {
+		for k := range checkedBytes {
+			if checkedBytes[k].amount ==
+				currentBytes[v].amount + uint8(diff) {
 				return true,
-				currentColors[v].color,
-				currentColors[k].color
+				currentBytes[v].kind,
+				currentBytes[k].kind
 			}
 		}
 	}
 	return false, "", ""
+}
+
+func getByteChecks(current byte) []byteChecked {
+	return []byteChecked {
+		byteChecked{
+			kind: "a",
+			amount: current+1,
+		},
+		byteChecked{
+			kind: "b",
+			amount: current+2,
+		},
+		byteChecked{
+			kind: "c",
+			amount: current+4,
+		},
+		byteChecked{
+			kind: "d",
+			amount: current+6,
+		},
+		byteChecked{
+			kind: "e",
+			amount: current+8,
+		},
+		byteChecked{
+			kind: "f",
+			amount: current+10,
+		},
+		byteChecked{
+			kind: "g",
+			amount: current+16,
+		},
+		byteChecked{
+			kind: "h",
+			amount: current+32,
+		},
+		byteChecked{
+			kind: "i",
+			amount: current+64,
+		},
+		byteChecked{
+			kind: "j",
+			amount: current+128,
+		},
+	}
 }
