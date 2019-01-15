@@ -52,13 +52,10 @@ func CheckTranscoder(name string, message string) (string, error) {
 	return message, errors.New("transcoder version does not match")
 }
 
-func WriteVersion(name string, bytes []byte) ([]byte, error) {
-	meta, err := GetTranscoderMeta(name)
+func WriteVersion(transcoderType TranscoderType) ([]byte, error) {
+	meta, err := GetTranscoderMeta(string(transcoderType))
 	if err != nil {
-		return bytes, err
+		return nil, err
 	}
-	for i := range meta {
-		bytes = append(bytes, byte(meta[i]))
-	}
-	return bytes, nil
+	return []byte(meta), nil
 }
