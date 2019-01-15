@@ -1,171 +1,66 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"log"
-	"math/rand"
 	"sync"
-	"time"
 )
 
-const byteTranscoderName = "bytetc"
+type TranscoderType string
 
-func init() {
-	rand.Seed(time.Now().Unix())
+type key interface{
+	KeyType() TranscoderType
 }
 
-type byteChecked struct {
-	kind string
-	amount uint8
-}
-
-func TranscodeBytes(message []byte, bytes []byte) ([]byte, error) {
-	newMessage := make([]byte, 0)
-	newMessage, err := WriteVersion(byteTranscoderName, newMessage)
+func Transcode(
+	input []byte,
+	key key,
+	encoder func(byte, key) ([]byte, error),
+	) (output []byte, err error) {
+	bytes, err := WriteVersion(key.KeyType())
 	if err != nil {
-		return newMessage, err
+		return nil, err
 	}
 
-	byteList := make([]byteGroup, len(message))
-	wg := sync.WaitGroup{}
-	wg.Add(len(message))
+	byteGroups := make([]byteGroup, len(bytes))
+	wg := &sync.WaitGroup{}
+	wg.Add(len(input))
 
-	for i, b := range message {
-		go getByteNewBytes(i, b, bytes, byteList, &wg)
+	for i := range input {
+		go bytesRelay(i, input, byteGroups, key, encoder, wg)
 	}
 	wg.Wait()
-	for _, byteGroup := range byteList {
+
+	for _, byteGroup := range byteGroups {
 		for _, byte := range byteGroup.bytes {
-			newMessage = append(newMessage, byte)
+			bytes = append(bytes, byte)
 		}
 	}
-	return newMessage, nil
+	return bytes, nil
 }
 
-func getByteNewBytes(
+func bytesRelay(
 	index int,
-	char byte,
-	bytes []byte,
-	byteList []byteGroup,
-	group *sync.WaitGroup) {
-
+	input []byte,
+	bytes []byteGroup,
+	key key,
+	encoder func(byte, key) ([]byte, error),
+	wg *sync.WaitGroup) {
 	byteGroup := byteGroup{
 		bytes: make([]byte, 0),
 	}
-	msg, err := findBytePattern(char, bytes)
+	msg, err := encoder(input[index], key)
 	if err != nil {
-		log.Println(err.Error())
+		wg.Done()
+		log.Fatal(err)
+		return
 	}
 	for _, b := range msg {
 		byteGroup.bytes = append(byteGroup.bytes, b)
 	}
-	byteList[index] = byteGroup
-	group.Done()
+	bytes[index] = byteGroup
+	wg.Done()
 }
 
-func findBytePattern(char byte, bytes []byte) ([]byte, error) {
-	bounds := len(bytes)
-	startX := rand.Intn(bounds)
-	firstByte := bytes[startX]
-
-	pattern, err := findBytePartner(
-		location{x: startX}, char, firstByte, bytes)
-	if err != nil && err.Error() == errorMatchNotFound {
-		startX = rand.Intn(bounds)
-		firstByte := bytes[startX]
-
-		pattern, err = findBytePartner(
-			location{x: startX}, char, firstByte, bytes)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	return pattern, nil
-}
-
-func findBytePartner(
-	location location,
-	difference byte,
-	currentByte byte,
-	bytes []byte) ([]byte, error) {
-	boundary := len(bytes)
-	for x := 0; x < boundary; x++ {
-		checkedByte := bytes[x]
-		if match, firstType, secondType := checkByteMatch(
-			difference, currentByte, checkedByte); match {
-				return []byte(fmt.Sprintf(
-						"%s%v%s%v",
-						firstType, location.x,
-						secondType, x)), nil
-			}
-	}
-	return nil, errors.New(errorMatchNotFound)
-}
-
-func checkByteMatch(
-	diff byte,
-	current byte,
-	checked byte) (bool, string, string) {
-	currentBytes := getByteChecks(current)
-	checkedBytes := getByteChecks(checked)
-	for v := range currentBytes {
-		for k := range checkedBytes {
-			if checkedBytes[k].amount ==
-				currentBytes[v].amount + uint8(diff) {
-				return true,
-				currentBytes[v].kind,
-				currentBytes[k].kind
-			}
-		}
-	}
-	return false, "", ""
-}
-
-func getByteChecks(current byte) []byteChecked {
-	return []byteChecked {
-		byteChecked{
-			kind: "a",
-			amount: current+1,
-		},
-		byteChecked{
-			kind: "b",
-			amount: current+2,
-		},
-		byteChecked{
-			kind: "c",
-			amount: current+4,
-		},
-		byteChecked{
-			kind: "d",
-			amount: current+6,
-		},
-		byteChecked{
-			kind: "e",
-			amount: current+8,
-		},
-		byteChecked{
-			kind: "f",
-			amount: current+10,
-		},
-		byteChecked{
-			kind: "g",
-			amount: current+16,
-		},
-		byteChecked{
-			kind: "h",
-			amount: current+32,
-		},
-		byteChecked{
-			kind: "i",
-			amount: current+64,
-		},
-		byteChecked{
-			kind: "j",
-			amount: current+128,
-		},
-	}
+func Transdecode(input []byte, decoder interface{}) (output []byte, err error) {
+	return nil, nil
 }
