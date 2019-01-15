@@ -5,14 +5,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"log"
 	"math/rand"
-	"sync"
 	"time"
 )
-
-const imageTranscoderName = "imgtc"
-const errorMatchNotFound = "match not found"
 
 func init() {
 	rand.Seed(time.Now().Unix())
@@ -23,55 +18,25 @@ type colorChecked struct {
 	amount uint8
 }
 
-type byteGroup struct {
-	bytes []byte
+type imageKey struct {
+	image.Image
 }
 
-func TranscodeImage(message []byte, img image.Image) ([]byte, error) {
-	newMessage := make([]byte, 0)
-	newMessage, err := WriteVersion(imageTranscoderName, newMessage)
-	if err != nil {
-		return newMessage, err
-	}
-
-	byteList := make([]byteGroup, len(message))
-	wg := sync.WaitGroup{}
-	wg.Add(len(message))
-
-	for i, b := range message {
-		go getNewBytes(i, b, img, byteList, &wg)
-	}
-	wg.Wait()
-	for _, byteGroup := range byteList {
-		for _, byte := range byteGroup.bytes {
-			newMessage = append(newMessage, byte)
-		}
-	}
-	return newMessage, nil
+func (imageKey) KeyType() TranscoderType {
+	return TranscoderType("bytetc")
 }
 
-func getNewBytes(
-	index int,
-	char byte,
-	img image.Image,
-	byteList []byteGroup,
-	group *sync.WaitGroup) {
 
-	byteGroup := byteGroup{
-		bytes: make([]byte, 0),
-	}
-	msg, err := findBytePattern(char, img)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	for _, b := range msg {
-		byteGroup.bytes = append(byteGroup.bytes, b)
-	}
-	byteList[index] = byteGroup
-	group.Done()
+func TranscodeImage(input []byte, key image.Image) ([]byte, error) {
+	return Transcode(
+		input, imageKey{key}, findPixelPattern)
+	return nil, nil
 }
 
-func findBytePattern(char byte, img image.Image) ([]byte, error) {
+func findPixelPattern(char byte, key key) ([]byte, error) {
+	img, ok := key.(imageKey); if !ok {
+		return nil, errors.New("failed to cast key")
+	}
 	bounds := img.Bounds()
 	startX := rand.Intn(bounds.Max.X)
 	startY := rand.Intn(bounds.Max.Y)
