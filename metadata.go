@@ -41,15 +41,18 @@ func GetTranscoderMeta(name string) (string, error) {
 	return "", errors.New("invalid transcoder metadata")
 }
 
-func CheckTranscoder(name string, message string) (string, error) {
-	meta, err := GetTranscoderMeta(name)
+func CheckTranscoder(
+	transcoderType TranscoderType,
+	message *string) (error) {
+	meta, err := GetTranscoderMeta(string(transcoderType))
 	if err != nil {
-		return message, err
+		return err
 	}
-	if strings.HasPrefix(message, meta) {
-		return strings.TrimPrefix(message, meta), nil
+	if strings.HasPrefix(*message, meta) {
+		*message = strings.TrimPrefix(*message, meta)
+		return nil
 	}
-	return message, errors.New("transcoder version does not match")
+	return errors.New("transcoder version does not match")
 }
 
 func WriteVersion(transcoderType TranscoderType) ([]byte, error) {
