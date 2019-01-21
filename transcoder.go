@@ -25,7 +25,7 @@ func Transcode(
 		return nil, err
 	}
 
-	byteGroups := make([]byteGroup, len(bytes))
+	byteGroups := make([]byteGroup, len(input))
 	wg := &sync.WaitGroup{}
 	wg.Add(len(input))
 
@@ -89,34 +89,37 @@ func findDecodeGroups(
 	if !strings.ContainsAny(input[0:1], string(characters)) {
 		return decodeGroups, errors.New("no decode characters found")
 	}
-	start := false
 	decode := decodeGroup{
 		kind: []uint8{},
 		place: []string{},
 	}
 	buffer := make([]uint8, 0)
 	numberAdded := 0
+
 	for i := range input {
-		if !start {
-			if strings.ContainsAny(string(input[i]), string(characters)) {
-				start = true
+		if strings.ContainsAny(string(input[i]), string(characters)) {
+			if len(buffer) > 0 {
 				decode.place = append(decode.place, string(buffer))
-			} else {
-				buffer = append(buffer, input[i])
-			}
-		}
-		if start {
-			decode.kind = append(decode.kind, input[i])
-			numberAdded ++
-			if numberAdded == numGroups-1 {
-				numberAdded = 0
-				decodeGroups = append(decodeGroups, decode)
-				decode = decodeGroup{
-					kind: []uint8{},
-					place: []string{},
+				buffer = make([]uint8, 0)
+				if numberAdded == numGroups {
+					numberAdded = 0
+					decodeGroups = append(decodeGroups, decode)
+					decode = decodeGroup{
+						kind:  []uint8{},
+						place: []string{},
+					}
 				}
 			}
-			start = false
+			if i != len(input)-1 {
+				decode.kind = append(decode.kind, input[i])
+				numberAdded ++
+			}
+		} else {
+			buffer = append(buffer, input[i])
+			if i == len(input)-1 {
+				decode.place = append(decode.place, string(buffer))
+				decodeGroups = append(decodeGroups, decode)
+			}
 		}
 	}
 	return decodeGroups, nil

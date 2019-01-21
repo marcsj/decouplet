@@ -2,5 +2,9 @@
   {
     "name":     "imgtc",
     "version":  "0.2"
+  },
+  {
+    "name":     "bytetc",
+    "version":  "0.1"
   }
 ]
