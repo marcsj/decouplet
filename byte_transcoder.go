@@ -74,6 +74,7 @@ func (keyBytes) Dictionary() dictionary {
 	}
 }
 
+
 func TranscodeBytes(input []byte, key []byte) ([]byte, error) {
 	return Transcode(
 		input, keyBytes(key), findBytePattern)
@@ -83,6 +84,7 @@ func TransdecodeBytes(input []byte, key []byte) ([]byte, error) {
 	return Transdecode(
 		input, keyBytes(key), 2, byteDiff)
 }
+
 
 func byteDiff(key key, decodeGroups []decodeGroup) (string, error) {
 	bytes, ok := key.(keyBytes); if !ok {
@@ -165,11 +167,11 @@ func findBytePartner(
 		checkedByte := bytes[x]
 		if match, firstType, secondType := checkByteMatch(
 			difference, currentByte, checkedByte, dict); match {
-				return []byte(fmt.Sprintf(
-						"%s%v%s%v",
-						string(firstType), location.x,
-						string(secondType), x)), nil
-			}
+			return []byte(fmt.Sprintf(
+				"%s%v%s%v",
+				string(firstType), location.x,
+				string(secondType), x)), nil
+		}
 	}
 	return nil, errors.New(errorMatchNotFound)
 }
@@ -184,8 +186,8 @@ func checkByteMatch(
 			if checked + dict.decoders[k].amount ==
 				current + dict.decoders[v].amount + uint8(diff) {
 				return true,
-				dict.decoders[v].character,
-				dict.decoders[k].character
+					dict.decoders[v].character,
+					dict.decoders[k].character
 			}
 		}
 	}
