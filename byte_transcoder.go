@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -22,10 +23,109 @@ func (keyBytes) KeyType() TranscoderType {
 	return TranscoderType("bytetc")
 }
 
+func (keyBytes) DictionaryChars() dictionaryChars {
+	return dictionaryChars("abcdefghij")
+}
+
+func (keyBytes) Dictionary() dictionary {
+	return dictionary{
+		decoders: []decoder{
+			{
+				character: 'a',
+				amount: 1,
+			},
+			{
+				character: 'b',
+				amount: 2,
+			},
+			{
+				character: 'c',
+				amount: 4,
+			},
+			{
+				character: 'd',
+				amount: 6,
+			},
+			{
+				character: 'e',
+				amount: 8,
+			},
+			{
+				character: 'f',
+				amount: 10,
+			},
+			{
+				character: 'g',
+				amount: 16,
+			},
+			{
+				character: 'h',
+				amount: 32,
+			},
+			{
+				character: 'i',
+				amount: 64,
+			},
+			{
+				character: 'j',
+				amount: 128,
+			},
+		},
+	}
+}
 
 func TranscodeBytes(input []byte, key []byte) ([]byte, error) {
 	return Transcode(
 		input, keyBytes(key), findBytePattern)
+}
+
+func TransdecodeBytes(input []byte, key []byte) ([]byte, error) {
+	return Transdecode(
+		input, keyBytes(key), 2, byteDiff)
+}
+
+func byteDiff(key key, decodeGroups []decodeGroup) (string, error) {
+	bytes, ok := key.(keyBytes); if !ok {
+		return "", errors.New("failed to cast key")
+	}
+	returnString := ""
+	for _, dec := range decodeGroups {
+		b, err := getDefs(bytes, dec, key.Dictionary())
+		if err != nil {
+			return "", err
+		}
+		returnString += string(b)
+	}
+	return returnString, nil
+}
+
+func getDefs(bytes []byte, group decodeGroup, dict dictionary) (byte, error){
+	if len(group.place) < 2 {
+		return 0, errors.New("decode group missing locations")
+	}
+
+	loc1, err := strconv.Atoi(group.place[0])
+	if err != nil {
+		return 0, err
+	}
+	loc2, err := strconv.Atoi(group.place[1])
+	if err != nil {
+		return 0, err
+	}
+
+	var change1 uint8
+	var change2 uint8
+	for _, g := range dict.decoders {
+		if g.character == group.kind[0] {
+			change1 = bytes[loc1] + g.amount
+		}
+	}
+	for _, g := range dict.decoders {
+		if g.character == group.kind[1] {
+			change2 = bytes[loc2] + g.amount
+		}
+	}
+	return change2-change1, nil
 }
 
 func findBytePattern(char byte, key key) ([]byte, error) {
@@ -37,13 +137,13 @@ func findBytePattern(char byte, key key) ([]byte, error) {
 	firstByte := bytes[startX]
 
 	pattern, err := findBytePartner(
-		location{x: startX}, char, byte(firstByte), bytes)
+		location{x: startX}, char, byte(firstByte), bytes, key.Dictionary())
 	if err != nil && err.Error() == errorMatchNotFound {
 		startX = rand.Intn(bounds)
 		firstByte := bytes[startX]
 
 		pattern, err = findBytePartner(
-			location{x: startX}, char, byte(firstByte), bytes)
+			location{x: startX}, char, byte(firstByte), bytes, key.Dictionary())
 		if err != nil {
 			return nil, err
 		}
@@ -58,16 +158,17 @@ func findBytePartner(
 	location location,
 	difference byte,
 	currentByte byte,
-	bytes []byte) ([]byte, error) {
+	bytes []byte,
+	dict dictionary) ([]byte, error) {
 	boundary := len(bytes)
 	for x := 0; x < boundary; x++ {
 		checkedByte := bytes[x]
 		if match, firstType, secondType := checkByteMatch(
-			difference, currentByte, checkedByte); match {
+			difference, currentByte, checkedByte, dict); match {
 				return []byte(fmt.Sprintf(
 						"%s%v%s%v",
-						firstType, location.x,
-						secondType, x)), nil
+						string(firstType), location.x,
+						string(secondType), x)), nil
 			}
 	}
 	return nil, errors.New(errorMatchNotFound)
@@ -76,63 +177,17 @@ func findBytePartner(
 func checkByteMatch(
 	diff byte,
 	current byte,
-	checked byte) (bool, string, string) {
-	currentBytes := getByteChecks(current)
-	checkedBytes := getByteChecks(checked)
-	for v := range currentBytes {
-		for k := range checkedBytes {
-			if checkedBytes[k].amount ==
-				currentBytes[v].amount + uint8(diff) {
+	checked byte,
+	dict dictionary) (bool, uint8, uint8) {
+	for v := range dict.decoders {
+		for k := range dict.decoders {
+			if checked + dict.decoders[k].amount ==
+				current + dict.decoders[v].amount + uint8(diff) {
 				return true,
-				currentBytes[v].kind,
-				currentBytes[k].kind
+				dict.decoders[v].character,
+				dict.decoders[k].character
 			}
 		}
 	}
-	return false, "", ""
-}
-
-func getByteChecks(current byte) []byteChecked {
-	return []byteChecked {
-		byteChecked{
-			kind: "a",
-			amount: current+1,
-		},
-		byteChecked{
-			kind: "b",
-			amount: current+2,
-		},
-		byteChecked{
-			kind: "c",
-			amount: current+4,
-		},
-		byteChecked{
-			kind: "d",
-			amount: current+6,
-		},
-		byteChecked{
-			kind: "e",
-			amount: current+8,
-		},
-		byteChecked{
-			kind: "f",
-			amount: current+10,
-		},
-		byteChecked{
-			kind: "g",
-			amount: current+16,
-		},
-		byteChecked{
-			kind: "h",
-			amount: current+32,
-		},
-		byteChecked{
-			kind: "i",
-			amount: current+64,
-		},
-		byteChecked{
-			kind: "j",
-			amount: current+128,
-		},
-	}
+	return false, 0, 0
 }
