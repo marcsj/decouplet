@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"os"
 	"testing"
 )
 
 func TestTranscodeBytes(t *testing.T) {
-	newMessage, err := TranscodeBytes([]byte("This is a test message! Very secret."), []byte("Test this! $%@#&*"))
+	newMessage, err := TranscodeBytes([]byte("Test"), []byte("tEst Key3#$"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -13,12 +15,71 @@ func TestTranscodeBytes(t *testing.T) {
 }
 
 func TestTransdecodeBytes(t *testing.T) {
-	message, err := TransdecodeBytes([]byte("[dcplt-bytetc-0.1]a11d2d12h2b7" +
-		"j0j3b1a2i0j2e0a4i0h4i4h6j7h4i4g1j7h14i6j1c0h13j0g15b0c5j1h10i1i9j0" +
-		"j3b1c4h1j2d0f11h2f6h2f7h2a11e2j2c0a13i2e11i1h10i4e16i1j2c0f15h2c8" +
-		"j7b9h6h0j6c14a0"), []byte("Test this! $%@#&*"))
+	message, err := TransdecodeBytes(
+		[]byte("[dcplt-bytetc-0.1]a9c0e8j4j8d4j8c9"), []byte("tEst Key3#$"))
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(string(message))
+}
+
+func TestByteMessage(t *testing.T) {
+	originalMessage :=
+		"!!**_-+Test THIS bigger message with More Symbols" +
+		"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@"
+	newMessage, err := TranscodeBytes(
+		[]byte(originalMessage), []byte("Test Key!@# $"))
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(string(newMessage))
+	message, err := TransdecodeBytes(newMessage, []byte("Test Key!@# $"))
+	if err != nil {
+		t.Error(err)
+	}
+	if originalMessage != string(message) {
+		t.Fail()
+	}
+	t.Log("Message:", string(message))
+}
+
+func TestByteMessage_Byte(t *testing.T) {
+	imageFile, err := os.Open("images/test.jpg")
+	if err != nil {
+		t.Error(err)
+	}
+	defer imageFile.Close()
+	fileInfo, err := imageFile.Stat()
+	if err != nil {
+		t.Error(err)
+	}
+	fileBytes := make([]byte, fileInfo.Size())
+	_, err = imageFile.Read(fileBytes)
+	if err != nil {
+		t.Error(err)
+	}
+	key := []byte(
+		"$#%#%@#$@$)*^_#@$*^)@$)@#" +
+		"^@#%@#)^Test byte key!@#$" +
+		"^GEWg gwefwgwef _#$%@#$%L",
+		)
+	t.Log("Length of original:", len(fileBytes))
+	newMessage, err := TranscodeBytes(fileBytes, key)
+	if err != nil {
+		t.Error(err)
+	}
+	message, err := TransdecodeBytes(newMessage, key)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("Length of finished:", len(message))
+	if len(message) != len(fileBytes) {
+		t.Log("sizes are not the same:",
+			len(message), len(fileBytes))
+		t.Fail()
+	}
+	if !bytes.Equal(fileBytes, message) {
+		t.Log("bytes are not equal")
+		t.Fail()
+	}
 }

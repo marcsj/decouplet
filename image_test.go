@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"testing"
 )
@@ -37,9 +38,10 @@ func TestImageMessage(t *testing.T) {
 		t.Error(err)
 	}
 	originalMessage :=
-			"!!**_-+Test THIS bigger message with More Symbols!" +
-			"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@More and more"
-	newMessage, err := TranscodeImage([]byte(originalMessage), image)
+		"!!**_-+Test THIS bigger message with More Symbols" +
+			"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@"
+	newMessage, err := TranscodeImage(
+		[]byte(originalMessage), image)
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,17 +80,18 @@ func TestImageMessage_Image(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log("Length of message:", len(newMessage))
 	message, err := TransdecodeImage(newMessage, image)
 	if err != nil {
 		t.Error(err)
 	}
+	t.Log("Length of finished: ", len(message))
 	if len(message) != len(fileBytes) {
+		t.Log("sizes are not the same:",
+			len(message), len(fileBytes))
 		t.Fail()
 	}
-	if string(fileBytes) != string(message) {
-		t.Log("fileBytes:", fileBytes)
-		t.Log("message:", message)
+	if !bytes.Equal(fileBytes, message) {
+		t.Log("bytes are not equal")
 		t.Fail()
 	}
 }
