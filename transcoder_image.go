@@ -14,11 +14,6 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-type colorChecked struct {
-	color string
-	amount uint8
-}
-
 type imageKey struct {
 	image.Image
 }
