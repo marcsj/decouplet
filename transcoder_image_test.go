@@ -76,7 +76,7 @@ func TestImageMessage_Image(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	newMessage, err := TranscodeImage(fileBytes, image)
+	newMessage, err := TranscodeImage_Concurrent(fileBytes, image)
 	if err != nil {
 		t.Error(err)
 	}
