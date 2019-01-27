@@ -28,3 +28,12 @@ type location struct {
 
 type dictionaryChars string
 
+func inDictionary(a byte, chars dictionaryChars) bool {
+	for i := range chars {
+		if a == chars[i] {
+			return true
+		}
+	}
+	return false
+}
+

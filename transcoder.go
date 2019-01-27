@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"log"
-	"strings"
 	"sync"
 )
 
@@ -71,22 +70,21 @@ func Transdecode(
 	groups int,
 	decoder func(key, []decodeGroup) (string, error),
 	) (output []byte, err error) {
-	msg := string(input)
-	err = CheckTranscoder(key.KeyType(), &msg)
+	err = CheckTranscoder(key.KeyType(), &input)
 	if err != nil {
 		return nil, err
 	}
-	decodeGroups, err := findDecodeGroups(msg, key.DictionaryChars(), groups)
+	decodeGroups, err := findDecodeGroups(input, key.DictionaryChars(), groups)
 	decoded, err := decoder(key, decodeGroups)
 	return []byte(decoded), err
 }
 
 func findDecodeGroups(
-	input string,
+	input []byte,
 	characters dictionaryChars,
 	numGroups int,
 	) (decodeGroups []decodeGroup, err error) {
-	if !strings.ContainsAny(input[0:1], string(characters)) {
+	if !inDictionary(input[0], characters) {
 		return decodeGroups, errors.New("no decode characters found")
 	}
 	decode := decodeGroup{
@@ -97,7 +95,7 @@ func findDecodeGroups(
 	numberAdded := 0
 
 	for i := range input {
-		if strings.ContainsAny(string(input[i]), string(characters)) {
+		if inDictionary(input[i], characters) {
 			if len(buffer) > 0 {
 				decode.place = append(decode.place, string(buffer))
 				buffer = make([]uint8, 0)

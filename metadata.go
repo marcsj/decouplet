@@ -1,11 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 )
 
 type TranscoderInfo struct {
@@ -43,13 +43,14 @@ func GetTranscoderMeta(name string) (string, error) {
 
 func CheckTranscoder(
 	transcoderType TranscoderType,
-	message *string) (error) {
+	message *[]byte) (error) {
 	meta, err := GetTranscoderMeta(string(transcoderType))
 	if err != nil {
 		return err
 	}
-	if strings.HasPrefix(*message, meta) {
-		*message = strings.TrimPrefix(*message, meta)
+	metaSize := len([]byte(meta))
+	if bytes.Equal((*message)[:metaSize], []byte(meta)) {
+		*message = (*message)[metaSize:]
 		return nil
 	}
 	return errors.New("transcoder version does not match")
