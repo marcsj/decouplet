@@ -1,13 +1,28 @@
 # decouplet
 
-Transcoder library for decoupling bytes from source objects in Go. 
-This library takes bytes, transcodes using a transcoder function, 
-and outputs final bytes as the original message measurements of a source object.
+Transcoder library for decoupling bytes using variable length keys in Go. 
+This library takes bytes, looks at a key and takes deltas, 
+and outputs a message as measurements of that key- 
+effectively decoupling any meaning from a message without a key.
 
+### Transcoder Types
 
-Currently, this library only contains an image transcoder.
-In the future, there are plans for more versions of the same concept, 
-and improvements to efficiency and better usage of source objects.
+Type | Key | Delta
+-----|-----|------
+Image|image.Image|Pixel levels in RGBA, and CMYK
+Byte |[]byte|Regular byte comparison with adds
+
+### Uses
+
+While this is not a typical encryption process, 
+it does have similar value.
+The typical use case would be with a small message 
+or password, because while this process does 
+effectively decouple its input to a high level, 
+it also produces very large messages.
+
+This can also be used with an already encrypted message,
+or the output encrypted to further obfuscate a message.
 
 ### Installation
 
