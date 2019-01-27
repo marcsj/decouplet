@@ -68,15 +68,15 @@ func Transdecode(
 	input []byte,
 	key key,
 	groups int,
-	decoder func(key, []decodeGroup) (string, error),
+	decodeFunc func(key, decodeGroup) (byte, error),
 	) (output []byte, err error) {
 	err = CheckTranscoder(key.KeyType(), &input)
 	if err != nil {
 		return nil, err
 	}
 	decodeGroups, err := findDecodeGroups(input, key.DictionaryChars(), groups)
-	decoded, err := decoder(key, decodeGroups)
-	return []byte(decoded), err
+	decoded, err := decodeBytes(key, decodeGroups, decodeFunc)
+	return decoded, err
 }
 
 func findDecodeGroups(
@@ -121,4 +121,20 @@ func findDecodeGroups(
 		}
 	}
 	return decodeGroups, nil
+}
+
+func decodeBytes(
+	key key,
+	decodeGroups []decodeGroup,
+	decodeFunc func(key, decodeGroup) (byte, error),
+	) ([]byte, error) {
+	returnBytes := make([]byte, 0)
+	for _, dec := range decodeGroups {
+		b, err := decodeFunc(key, dec)
+		if err != nil {
+			return nil, err
+		}
+		returnBytes = append(returnBytes, b)
+	}
+	return returnBytes, nil
 }

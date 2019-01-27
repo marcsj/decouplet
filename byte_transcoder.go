@@ -82,29 +82,17 @@ func TranscodeBytes(input []byte, key []byte) ([]byte, error) {
 
 func TransdecodeBytes(input []byte, key []byte) ([]byte, error) {
 	return Transdecode(
-		input, keyBytes(key), 2, byteDiff)
+		input, keyBytes(key), 2, getByteDefs)
 }
 
-
-func byteDiff(key key, decodeGroups []decodeGroup) (string, error) {
-	bytes, ok := key.(keyBytes); if !ok {
-		return "", errors.New("failed to cast key")
-	}
-	returnString := ""
-	for _, dec := range decodeGroups {
-		b, err := getDefs(bytes, dec, key.Dictionary())
-		if err != nil {
-			return "", err
-		}
-		returnString += string(b)
-	}
-	return returnString, nil
-}
-
-func getDefs(bytes []byte, group decodeGroup, dict dictionary) (byte, error){
+func getByteDefs(key key, group decodeGroup) (byte, error){
 	if len(group.place) < 2 {
 		return 0, errors.New("decode group missing locations")
 	}
+	bytes, ok := key.(keyBytes); if !ok {
+		return 0, errors.New("failed to cast key")
+	}
+	dict := key.Dictionary()
 
 	loc1, err := strconv.Atoi(group.place[0])
 	if err != nil {

@@ -105,29 +105,17 @@ func TranscodeImage(input []byte, key image.Image) ([]byte, error) {
 
 func TransdecodeImage(input []byte, key image.Image) ([]byte, error) {
 	return Transdecode(
-		input, imageKey{key}, 2, pixelDiff)
+		input, imageKey{key}, 2, getImgDefs)
 }
 
-
-func pixelDiff(key key, decodeGroups []decodeGroup) (string, error) {
-	img, ok := key.(imageKey); if !ok {
-		return "", errors.New("failed to cast key")
-	}
-	returnString := ""
-	for _, dec := range decodeGroups {
-		b, err := getImgDefs(img, dec, key.Dictionary())
-		if err != nil {
-			return "", err
-		}
-		returnString += string(b)
-	}
-	return returnString, nil
-}
-
-func getImgDefs(img imageKey, group decodeGroup, dict dictionary) (byte, error){
+func getImgDefs(key key, group decodeGroup) (byte, error){
 	if len(group.place) < 2 {
 		return 0, errors.New("decode group missing locations")
 	}
+	img, ok := key.(imageKey); if !ok {
+		return 0, errors.New("failed to cast key")
+	}
+	dict := key.Dictionary()
 
 	loc1, err := strconv.Atoi(group.place[0])
 	if err != nil {
