@@ -33,8 +33,8 @@ func Transcode(
 	}
 
 	for _, byteGroup := range byteGroups {
-		for _, byte := range byteGroup.bytes {
-			bytes = append(bytes, byte)
+		for _, b := range byteGroup.bytes {
+			bytes = append(bytes, b)
 		}
 	}
 	return bytes, nil
@@ -60,8 +60,8 @@ func Transcode_Concurrent(
 	wg.Wait()
 
 	for _, byteGroup := range byteGroups {
-		for _, byte := range byteGroup.bytes {
-			bytes = append(bytes, byte)
+		for _, b := range byteGroup.bytes {
+			bytes = append(bytes, b)
 		}
 	}
 	return bytes, nil
