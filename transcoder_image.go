@@ -14,11 +14,6 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-type colorChecked struct {
-	color string
-	amount uint8
-}
-
 type imageKey struct {
 	image.Image
 }
@@ -99,6 +94,12 @@ func dictionaryRGBACMYK(col color.Color, dict dictionary) dictionary {
 
 func TranscodeImage(input []byte, key image.Image) ([]byte, error) {
 	return Transcode(
+		input, imageKey{key}, findPixelPattern)
+	return nil, nil
+}
+
+func TranscodeImage_Concurrent(input []byte, key image.Image) ([]byte, error) {
+	return Transcode_Concurrent(
 		input, imageKey{key}, findPixelPattern)
 	return nil, nil
 }

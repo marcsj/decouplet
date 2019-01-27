@@ -8,7 +8,7 @@ import (
 
 type TranscoderType string
 
-type key interface{
+type key interface {
 	KeyType() TranscoderType
 	DictionaryChars() dictionaryChars
 	Dictionary() dictionary
@@ -29,13 +29,39 @@ func Transcode(
 	wg.Add(len(input))
 
 	for i := range input {
+		bytesRelay(i, input, byteGroups, key, encoder, wg)
+	}
+
+	for _, byteGroup := range byteGroups {
+		for _, b := range byteGroup.bytes {
+			bytes = append(bytes, b)
+		}
+	}
+	return bytes, nil
+}
+
+func Transcode_Concurrent(
+	input []byte,
+	key key,
+	encoder func(byte, key) ([]byte, error),
+	) (output []byte, err error) {
+	bytes, err := WriteVersion(key.KeyType())
+	if err != nil {
+		return nil, err
+	}
+
+	byteGroups := make([]byteGroup, len(input))
+	wg := &sync.WaitGroup{}
+	wg.Add(len(input))
+
+	for i := range input {
 		go bytesRelay(i, input, byteGroups, key, encoder, wg)
 	}
 	wg.Wait()
 
 	for _, byteGroup := range byteGroups {
-		for _, byte := range byteGroup.bytes {
-			bytes = append(bytes, byte)
+		for _, b := range byteGroup.bytes {
+			bytes = append(bytes, b)
 		}
 	}
 	return bytes, nil
