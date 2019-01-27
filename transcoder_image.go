@@ -98,6 +98,12 @@ func TranscodeImage(input []byte, key image.Image) ([]byte, error) {
 	return nil, nil
 }
 
+func TranscodeImage_Concurrent(input []byte, key image.Image) ([]byte, error) {
+	return Transcode_Concurrent(
+		input, imageKey{key}, findPixelPattern)
+	return nil, nil
+}
+
 func TransdecodeImage(input []byte, key image.Image) ([]byte, error) {
 	return Transdecode(
 		input, imageKey{key}, 2, getImgDefs)

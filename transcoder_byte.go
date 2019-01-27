@@ -80,6 +80,11 @@ func TranscodeBytes(input []byte, key []byte) ([]byte, error) {
 		input, keyBytes(key), findBytePattern)
 }
 
+func TranscodeBytes_Concurrent(input []byte, key []byte) ([]byte, error) {
+	return Transcode_Concurrent(
+		input, keyBytes(key), findBytePattern)
+}
+
 func TransdecodeBytes(input []byte, key []byte) ([]byte, error) {
 	return Transdecode(
 		input, keyBytes(key), 2, getByteDefs)
