@@ -1,11 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 )
 
 type TranscoderInfo struct {
@@ -41,24 +41,25 @@ func GetTranscoderMeta(name string) (string, error) {
 	return "", errors.New("invalid transcoder metadata")
 }
 
-func CheckTranscoder(name string, message string) (string, error) {
-	meta, err := GetTranscoderMeta(name)
+func CheckTranscoder(
+	transcoderType TranscoderType,
+	message *[]byte) (error) {
+	meta, err := GetTranscoderMeta(string(transcoderType))
 	if err != nil {
-		return message, err
+		return err
 	}
-	if strings.HasPrefix(message, meta) {
-		return strings.TrimPrefix(message, meta), nil
+	metaSize := len([]byte(meta))
+	if bytes.Equal((*message)[:metaSize], []byte(meta)) {
+		*message = (*message)[metaSize:]
+		return nil
 	}
-	return message, errors.New("transcoder version does not match")
+	return errors.New("transcoder version does not match")
 }
 
-func WriteVersion(name string, bytes []byte) ([]byte, error) {
-	meta, err := GetTranscoderMeta(name)
+func WriteVersion(transcoderType TranscoderType) ([]byte, error) {
+	meta, err := GetTranscoderMeta(string(transcoderType))
 	if err != nil {
-		return bytes, err
+		return nil, err
 	}
-	for i := range meta {
-		bytes = append(bytes, byte(meta[i]))
-	}
-	return bytes, nil
+	return []byte(meta), nil
 }
