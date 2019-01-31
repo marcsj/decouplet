@@ -26,7 +26,7 @@ func TestTransdecodeBytes(t *testing.T) {
 func TestByteMessage(t *testing.T) {
 	originalMessage :=
 		"!!**_-+Test THIS bigger message with More Symbols" +
-		"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@"
+			"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@"
 	newMessage, err := TranscodeBytes(
 		[]byte(originalMessage), []byte("Test Key!@# $"))
 	if err != nil {
@@ -60,11 +60,11 @@ func TestByteMessage_Byte(t *testing.T) {
 	}
 	key := []byte(
 		"$#%#%@#$@$)*^_#@$*^)@$)@#" +
-		"^@#%@#)^Test byte key!@#$" +
-		"^GEWg gwefwgwef _#$%@#$%L",
-		)
+			"^@#%@#)^Test byte Key!@#$" +
+			"^GEWg gwefwgwef _#$%@#$%L",
+	)
 	t.Log("Length of original:", len(fileBytes))
-	newMessage, err := TranscodeBytes_Concurrent(fileBytes, key)
+	newMessage, err := TranscodeBytesConcurrent(fileBytes, key)
 	if err != nil {
 		t.Error(err)
 	}

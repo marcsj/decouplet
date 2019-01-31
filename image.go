@@ -22,10 +22,10 @@ func LoadImage(filename string) (image.Image, error) {
 }
 
 func GetPixelNumber(x int, y int, width int) int {
-	return y * width + x
+	return y*width + x
 }
 
-func GetCoordinates(pixelNumber int, imageWidth int) (int, int){
+func GetCoordinates(pixelNumber int, imageWidth int) (int, int) {
 	x := pixelNumber % imageWidth
 	y := pixelNumber / imageWidth
 	return x, y

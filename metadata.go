@@ -9,8 +9,8 @@ import (
 )
 
 type TranscoderInfo struct {
-	Name string 	`json:"name"`
-	Version string 	`json:"version"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }
 
 var TranscodersList []TranscoderInfo
@@ -35,7 +35,7 @@ func GetTranscoderMeta(name string) (string, error) {
 				"[dcplt-%s-%s]",
 				TranscodersList[i].Name,
 				TranscodersList[i].Version,
-				), nil
+			), nil
 		}
 	}
 	return "", errors.New("invalid transcoder metadata")
@@ -43,7 +43,7 @@ func GetTranscoderMeta(name string) (string, error) {
 
 func CheckTranscoder(
 	transcoderType TranscoderType,
-	message *[]byte) (error) {
+	message *[]byte) error {
 	meta, err := GetTranscoderMeta(string(transcoderType))
 	if err != nil {
 		return err

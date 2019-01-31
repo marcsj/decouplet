@@ -18,54 +18,54 @@ type imageKey struct {
 	image.Image
 }
 
-func (imageKey) KeyType() TranscoderType {
+func (imageKey) GetKeyType() TranscoderType {
 	return TranscoderType("imgtc")
 }
 
-func (imageKey) DictionaryChars() dictionaryChars {
-	return dictionaryChars("rgbacmyk")
+func (imageKey) GetDictionaryChars() DictionaryChars {
+	return DictionaryChars("rgbacmyk")
 }
 
-func (imageKey) Dictionary() dictionary {
-	return dictionary{
-		decoders: []decoder{
+func (imageKey) GetDictionary() Dictionary {
+	return Dictionary{
+		decoders: []Decoder{
 			{
 				character: 'r',
-				amount: 0,
+				amount:    0,
 			},
 			{
 				character: 'g',
-				amount: 0,
+				amount:    0,
 			},
 			{
 				character: 'b',
-				amount: 0,
+				amount:    0,
 			},
 			{
 				character: 'a',
-				amount: 0,
+				amount:    0,
 			},
 			{
 				character: 'c',
-				amount: 0,
+				amount:    0,
 			},
 			{
 				character: 'm',
-				amount: 0,
+				amount:    0,
 			},
 			{
 				character: 'y',
-				amount: 0,
+				amount:    0,
 			},
 			{
 				character: 'k',
-				amount: 0,
+				amount:    0,
 			},
 		},
 	}
 }
 
-func dictionaryRGBACMYK(col color.Color, dict dictionary) dictionary {
+func dictionaryRGBACMYK(col color.Color, dict Dictionary) Dictionary {
 	r, g, b, a := col.RGBA()
 	c, m, y, k := color.RGBToCMYK(uint8(r), uint8(g), uint8(b))
 	for i := range dict.decoders {
@@ -91,15 +91,14 @@ func dictionaryRGBACMYK(col color.Color, dict dictionary) dictionary {
 	return dict
 }
 
-
 func TranscodeImage(input []byte, key image.Image) ([]byte, error) {
 	return Transcode(
 		input, imageKey{key}, findPixelPattern)
 	return nil, nil
 }
 
-func TranscodeImage_Concurrent(input []byte, key image.Image) ([]byte, error) {
-	return Transcode_Concurrent(
+func TranscodeImageConcurrent(input []byte, key image.Image) ([]byte, error) {
+	return TranscodeConcurrent(
 		input, imageKey{key}, findPixelPattern)
 	return nil, nil
 }
@@ -109,14 +108,15 @@ func TransdecodeImage(input []byte, key image.Image) ([]byte, error) {
 		input, imageKey{key}, 2, getImgDefs)
 }
 
-func getImgDefs(key key, group decodeGroup) (byte, error){
+func getImgDefs(key Key, group DecodeGroup) (byte, error) {
 	if len(group.place) < 2 {
 		return 0, errors.New("decode group missing locations")
 	}
-	img, ok := key.(imageKey); if !ok {
-		return 0, errors.New("failed to cast key")
+	img, ok := key.(imageKey)
+	if !ok {
+		return 0, errors.New("failed to cast Key")
 	}
-	dict := key.Dictionary()
+	dict := key.GetDictionary()
 
 	loc1, err := strconv.Atoi(group.place[0])
 	if err != nil {
@@ -152,12 +152,13 @@ func getImgDefs(key key, group decodeGroup) (byte, error){
 			change2 = g.amount
 		}
 	}
-	return change2-change1, nil
+	return change2 - change1, nil
 }
 
-func findPixelPattern(char byte, key key) ([]byte, error) {
-	img, ok := key.(imageKey); if !ok {
-		return nil, errors.New("failed to cast key")
+func findPixelPattern(char byte, key Key) ([]byte, error) {
+	img, ok := key.(imageKey)
+	if !ok {
+		return nil, errors.New("failed to cast Key")
 	}
 	bounds := img.Bounds()
 	startX := rand.Intn(bounds.Max.X)
@@ -165,14 +166,14 @@ func findPixelPattern(char byte, key key) ([]byte, error) {
 	firstColor := img.At(startX, startY)
 
 	pattern, err := findPixelPartner(
-		location{x: startX, y: startY}, char, firstColor, img, key.Dictionary())
+		location{x: startX, y: startY}, char, firstColor, img, key.GetDictionary())
 	if err != nil && err.Error() == errorMatchNotFound {
 		startX = rand.Intn(bounds.Max.X)
 		startY = rand.Intn(bounds.Max.Y)
 		firstColor = img.At(startX, startY)
 
 		pattern, err = findPixelPartner(
-			location{x: startX, y: startY}, char, firstColor, img, key.Dictionary())
+			location{x: startX, y: startY}, char, firstColor, img, key.GetDictionary())
 		if err != nil {
 			return nil, err
 		}
@@ -188,20 +189,20 @@ func findPixelPartner(
 	difference byte,
 	currentColor color.Color,
 	img image.Image,
-	dict dictionary) ([]byte, error) {
+	dict Dictionary) ([]byte, error) {
 	bounds := img.Bounds()
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
 			checkedColor := img.At(x, y)
 			if match, firstType, secondType := checkColorMatch(
 				difference, currentColor, checkedColor, dict); match {
-					firstLocation := GetPixelNumber(
-						location.x, location.y, bounds.Max.X)
-					secondLocation := GetPixelNumber(x, y, bounds.Max.X)
-					return []byte(fmt.Sprintf(
-						"%s%v%s%v",
-						string(firstType), firstLocation,
-						string(secondType), secondLocation)), nil
+				firstLocation := GetPixelNumber(
+					location.x, location.y, bounds.Max.X)
+				secondLocation := GetPixelNumber(x, y, bounds.Max.X)
+				return []byte(fmt.Sprintf(
+					"%s%v%s%v",
+					string(firstType), firstLocation,
+					string(secondType), secondLocation)), nil
 			}
 		}
 	}
@@ -212,16 +213,16 @@ func checkColorMatch(
 	diff byte,
 	current color.Color,
 	checked color.Color,
-	dict dictionary) (bool, uint8, uint8) {
+	dict Dictionary) (bool, uint8, uint8) {
 	currentColors := dictionaryRGBACMYK(current, dict)
 	checkedColors := dictionaryRGBACMYK(checked, dict)
 	for v := range currentColors.decoders {
 		for k := range checkedColors.decoders {
 			if checkedColors.decoders[k].amount ==
-				currentColors.decoders[v].amount + uint8(diff) {
+				currentColors.decoders[v].amount+uint8(diff) {
 				return true,
-				currentColors.decoders[v].character,
-				currentColors.decoders[k].character
+					currentColors.decoders[v].character,
+					currentColors.decoders[k].character
 			}
 		}
 	}

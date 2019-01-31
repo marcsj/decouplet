@@ -2,23 +2,26 @@ package main
 
 const errorMatchNotFound = "match not found"
 
+type TranscoderType string
 
-type byteGroup struct {
+type DictionaryChars string
+
+type ByteGroup struct {
 	bytes []byte
 }
 
-type decodeGroup struct {
-	kind []uint8
+type DecodeGroup struct {
+	kind  []uint8
 	place []string
 }
 
-type dictionary struct {
-	decoders []decoder
+type Dictionary struct {
+	decoders []Decoder
 }
 
-type decoder struct {
+type Decoder struct {
 	character uint8
-	amount uint8
+	amount    uint8
 }
 
 type location struct {
@@ -26,9 +29,7 @@ type location struct {
 	y int
 }
 
-type dictionaryChars string
-
-func inDictionary(a byte, chars dictionaryChars) bool {
+func (chars DictionaryChars) CheckIn(a byte) bool {
 	for i := range chars {
 		if a == chars[i] {
 			return true
@@ -36,4 +37,3 @@ func inDictionary(a byte, chars dictionaryChars) bool {
 	}
 	return false
 }
-

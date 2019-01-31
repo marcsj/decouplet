@@ -25,7 +25,7 @@ func TestTransdecodeImage(t *testing.T) {
 	}
 	message, err := TransdecodeImage([]byte(
 		"[dcplt-imgtc-0.2]a182145r90241r590295k137282r6777k139200r460987c138337",
-		), image)
+	), image)
 	if err != nil {
 		t.Error(err)
 	}
@@ -76,7 +76,7 @@ func TestImageMessage_Image(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	newMessage, err := TranscodeImage_Concurrent(fileBytes, image)
+	newMessage, err := TranscodeImageConcurrent(fileBytes, image)
 	if err != nil {
 		t.Error(err)
 	}

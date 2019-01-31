@@ -6,25 +6,23 @@ import (
 	"sync"
 )
 
-type TranscoderType string
-
-type key interface {
-	KeyType() TranscoderType
-	DictionaryChars() dictionaryChars
-	Dictionary() dictionary
+type Key interface {
+	GetKeyType() TranscoderType
+	GetDictionaryChars() DictionaryChars
+	GetDictionary() Dictionary
 }
 
 func Transcode(
 	input []byte,
-	key key,
-	encoder func(byte, key) ([]byte, error),
-	) (output []byte, err error) {
-	bytes, err := WriteVersion(key.KeyType())
+	key Key,
+	encoder func(byte, Key) ([]byte, error),
+) (output []byte, err error) {
+	bytes, err := WriteVersion(key.GetKeyType())
 	if err != nil {
 		return nil, err
 	}
 
-	byteGroups := make([]byteGroup, len(input))
+	byteGroups := make([]ByteGroup, len(input))
 	wg := &sync.WaitGroup{}
 	wg.Add(len(input))
 
@@ -40,17 +38,17 @@ func Transcode(
 	return bytes, nil
 }
 
-func Transcode_Concurrent(
+func TranscodeConcurrent(
 	input []byte,
-	key key,
-	encoder func(byte, key) ([]byte, error),
-	) (output []byte, err error) {
-	bytes, err := WriteVersion(key.KeyType())
+	key Key,
+	encoder func(byte, Key) ([]byte, error),
+) (output []byte, err error) {
+	bytes, err := WriteVersion(key.GetKeyType())
 	if err != nil {
 		return nil, err
 	}
 
-	byteGroups := make([]byteGroup, len(input))
+	byteGroups := make([]ByteGroup, len(input))
 	wg := &sync.WaitGroup{}
 	wg.Add(len(input))
 
@@ -70,11 +68,11 @@ func Transcode_Concurrent(
 func bytesRelay(
 	index int,
 	input []byte,
-	bytes []byteGroup,
-	key key,
-	encoder func(byte, key) ([]byte, error),
+	bytes []ByteGroup,
+	key Key,
+	encoder func(byte, Key) ([]byte, error),
 	wg *sync.WaitGroup) {
-	byteGroup := byteGroup{
+	byteGroup := ByteGroup{
 		bytes: make([]byte, 0),
 	}
 	msg, err := encoder(input[index], key)
@@ -92,43 +90,43 @@ func bytesRelay(
 
 func Transdecode(
 	input []byte,
-	key key,
+	key Key,
 	groups int,
-	decodeFunc func(key, decodeGroup) (byte, error),
-	) (output []byte, err error) {
-	err = CheckTranscoder(key.KeyType(), &input)
+	decodeFunc func(Key, DecodeGroup) (byte, error),
+) (output []byte, err error) {
+	err = CheckTranscoder(key.GetKeyType(), &input)
 	if err != nil {
 		return nil, err
 	}
-	decodeGroups, err := findDecodeGroups(input, key.DictionaryChars(), groups)
+	decodeGroups, err := findDecodeGroups(input, key.GetDictionaryChars(), groups)
 	decoded, err := decodeBytes(key, decodeGroups, decodeFunc)
 	return decoded, err
 }
 
 func findDecodeGroups(
 	input []byte,
-	characters dictionaryChars,
+	characters DictionaryChars,
 	numGroups int,
-	) (decodeGroups []decodeGroup, err error) {
-	if !inDictionary(input[0], characters) {
+) (decodeGroups []DecodeGroup, err error) {
+	if !characters.CheckIn(input[0]) {
 		return decodeGroups, errors.New("no decode characters found")
 	}
-	decode := decodeGroup{
-		kind: []uint8{},
+	decode := DecodeGroup{
+		kind:  []uint8{},
 		place: []string{},
 	}
 	buffer := make([]uint8, 0)
 	numberAdded := 0
 
 	for i := range input {
-		if inDictionary(input[i], characters) {
+		if characters.CheckIn(input[i]) {
 			if len(buffer) > 0 {
 				decode.place = append(decode.place, string(buffer))
 				buffer = make([]uint8, 0)
 				if numberAdded == numGroups {
 					numberAdded = 0
 					decodeGroups = append(decodeGroups, decode)
-					decode = decodeGroup{
+					decode = DecodeGroup{
 						kind:  []uint8{},
 						place: []string{},
 					}
@@ -136,7 +134,7 @@ func findDecodeGroups(
 			}
 			if i != len(input)-1 {
 				decode.kind = append(decode.kind, input[i])
-				numberAdded ++
+				numberAdded++
 			}
 		} else {
 			buffer = append(buffer, input[i])
@@ -150,10 +148,10 @@ func findDecodeGroups(
 }
 
 func decodeBytes(
-	key key,
-	decodeGroups []decodeGroup,
-	decodeFunc func(key, decodeGroup) (byte, error),
-	) ([]byte, error) {
+	key Key,
+	decodeGroups []DecodeGroup,
+	decodeFunc func(Key, DecodeGroup) (byte, error),
+) ([]byte, error) {
 	returnBytes := make([]byte, 0)
 	for _, dec := range decodeGroups {
 		b, err := decodeFunc(key, dec)
