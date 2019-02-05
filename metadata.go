@@ -1,4 +1,4 @@
-package main
+package decouplet
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
+	"runtime"
 )
 
 type TranscoderInfo struct {
@@ -17,7 +19,9 @@ var TranscodersList []TranscoderInfo
 
 func init() {
 	TranscodersList = make([]TranscoderInfo, 0)
-	file, err := os.Open("versions.json")
+
+	_, runFile, _, _ := runtime.Caller(0)
+	file, err := os.Open(path.Dir(runFile) + "/versions.json")
 	if err != nil {
 		panic(err)
 	}

@@ -1,4 +1,4 @@
-package main
+package decouplet
 
 const errorMatchNotFound = "match not found"
 
