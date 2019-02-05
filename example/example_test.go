@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func Test_Example(t *testing.T) {
+func Test_AESExample(t *testing.T) {
 	key := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, key); err != nil {
 		t.Error(err)
