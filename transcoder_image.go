@@ -196,9 +196,9 @@ func findPixelPartner(
 			checkedColor := img.At(x, y)
 			if match, firstType, secondType := checkColorMatch(
 				difference, currentColor, checkedColor, dict); match {
-				firstLocation := GetPixelNumber(
+				firstLocation := getPixelNumber(
 					location.x, location.y, bounds.Max.X)
-				secondLocation := GetPixelNumber(x, y, bounds.Max.X)
+				secondLocation := getPixelNumber(x, y, bounds.Max.X)
 				return []byte(fmt.Sprintf(
 					"%s%v%s%v",
 					string(firstType), firstLocation,
@@ -231,7 +231,7 @@ func checkColorMatch(
 
 func getXYLocation(loc int, imageWidth int) (location, error) {
 	location := location{}
-	x, y := GetCoordinates(loc, imageWidth)
+	x, y := getCoordinates(loc, imageWidth)
 	location.x = x
 	location.y = y
 	return location, nil
