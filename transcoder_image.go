@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"io"
 	"math/rand"
 	"strconv"
 	"time"
@@ -97,6 +98,11 @@ func TranscodeImage(input []byte, key image.Image) ([]byte, error) {
 	return nil, nil
 }
 
+func TranscodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
+	return TranscodeStream(
+		input, imageKey{key}, findPixelPattern)
+}
+
 func TranscodeImageConcurrent(input []byte, key image.Image) ([]byte, error) {
 	return TranscodeConcurrent(
 		input, imageKey{key}, findPixelPattern)
@@ -105,6 +111,11 @@ func TranscodeImageConcurrent(input []byte, key image.Image) ([]byte, error) {
 
 func TransdecodeImage(input []byte, key image.Image) ([]byte, error) {
 	return Transdecode(
+		input, imageKey{key}, 2, getImgDefs)
+}
+
+func TransdecodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
+	return TransdecodeStream(
 		input, imageKey{key}, 2, getImgDefs)
 }
 

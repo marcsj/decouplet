@@ -2,6 +2,7 @@ package decouplet
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -91,6 +92,29 @@ func TestImageMessage_Image(t *testing.T) {
 		t.Fail()
 	}
 	if !bytes.Equal(fileBytes, message) {
+		t.Log("bytes are not equal")
+		t.Fail()
+	}
+}
+
+func TestTranscodeImageConcurrent(t *testing.T) {
+	image, err := LoadImage("images/test.jpg")
+	if err != nil {
+		t.Error(err)
+	}
+	msg := []byte("Test this message and see it stream")
+	input := bytes.NewReader(msg)
+	reader, err := TranscodeImageStream(input, image)
+	if err != nil {
+		t.Error(err)
+	}
+	newReader, err := TransdecodeImageStream(reader, image)
+	if err != nil {
+		t.Error(err)
+	}
+	b, err := ioutil.ReadAll(newReader)
+	t.Log(string(b))
+	if !bytes.Equal(msg, b) {
 		t.Log("bytes are not equal")
 		t.Fail()
 	}
