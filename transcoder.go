@@ -2,7 +2,7 @@ package decouplet
 
 import (
 	"errors"
-	"log"
+	"io"
 	"sync"
 )
 
@@ -23,11 +23,20 @@ func Transcode(
 	}
 
 	byteGroups := make([]ByteGroup, len(input))
+	errorCh := make(chan error, len(input))
 	wg := &sync.WaitGroup{}
 	wg.Add(len(input))
 
 	for i := range input {
-		bytesRelay(i, input, byteGroups, key, encoder, wg)
+		bytesRelay(
+			i, input, byteGroups, key, encoder, errorCh, wg)
+	}
+
+	select {
+	case err := <-errorCh:
+		return nil, err
+	default:
+		break
 	}
 
 	for _, byteGroup := range byteGroups {
@@ -36,6 +45,37 @@ func Transcode(
 		}
 	}
 	return bytes, nil
+}
+
+func TranscodeStream(
+	input io.Reader,
+	key Key,
+	encoder func(byte, Key) ([]byte, error),
+) (reader io.Reader, err error) {
+	reader, writer := io.Pipe()
+	go func() {
+		for {
+			b := make([]byte, 1)
+			_, err := input.Read(b)
+			if err != nil {
+				if err == io.EOF {
+					writer.Close()
+					return
+				}
+				writer.CloseWithError(err)
+				return
+			}
+			m, err := encoder(b[0], key)
+			if err != nil {
+				writer.CloseWithError(err)
+			}
+			_, err = writer.Write(m)
+			if err != nil {
+				writer.CloseWithError(err)
+			}
+		}
+	}()
+	return reader, nil
 }
 
 func TranscodeConcurrent(
@@ -49,13 +89,22 @@ func TranscodeConcurrent(
 	}
 
 	byteGroups := make([]ByteGroup, len(input))
+	errorCh := make(chan error, len(input))
 	wg := &sync.WaitGroup{}
 	wg.Add(len(input))
 
 	for i := range input {
-		go bytesRelay(i, input, byteGroups, key, encoder, wg)
+		go bytesRelay(
+			i, input, byteGroups, key, encoder, errorCh, wg)
 	}
 	wg.Wait()
+
+	select {
+	case err := <-errorCh:
+		return nil, err
+	default:
+		break
+	}
 
 	for _, byteGroup := range byteGroups {
 		for _, b := range byteGroup.bytes {
@@ -71,21 +120,21 @@ func bytesRelay(
 	bytes []ByteGroup,
 	key Key,
 	encoder func(byte, Key) ([]byte, error),
+	errorCh chan error,
 	wg *sync.WaitGroup) {
+	defer wg.Done()
 	byteGroup := ByteGroup{
 		bytes: make([]byte, 0),
 	}
 	msg, err := encoder(input[index], key)
 	if err != nil {
-		wg.Done()
-		log.Fatal(err)
+		errorCh <- err
 		return
 	}
 	for _, b := range msg {
 		byteGroup.bytes = append(byteGroup.bytes, b)
 	}
 	bytes[index] = byteGroup
-	wg.Done()
 }
 
 func Transdecode(
@@ -98,9 +147,85 @@ func Transdecode(
 	if err != nil {
 		return nil, err
 	}
-	decodeGroups, err := findDecodeGroups(input, key.GetDictionaryChars(), groups)
+	decodeGroups, err := findDecodeGroups(
+		input, key.GetDictionaryChars(), groups)
+	if err != nil {
+		return nil, err
+	}
 	decoded, err := decodeBytes(key, decodeGroups, decodeFunc)
 	return decoded, err
+}
+
+func TransdecodeStream(
+	input io.Reader,
+	key Key,
+	groups int,
+	decodeFunc func(Key, DecodeGroup) (byte, error),
+) (output io.Reader, err error) {
+	chars := key.GetDictionaryChars()
+	groupsFound := 0
+	buffer := make([]byte, 0)
+	reader, writer := io.Pipe()
+	go func() {
+		for {
+			b := make([]byte, 1)
+			_, err := input.Read(b)
+			if err != nil {
+				if err == io.EOF {
+					err = writeDecodeBuffer(
+						decodeFunc, buffer, chars, groups, key, writer)
+					if err != nil {
+						writer.CloseWithError(err)
+						return
+					}
+					writer.Close()
+					return
+				} else {
+					writer.CloseWithError(err)
+					return
+				}
+			}
+			if chars.CheckIn(b[0]) {
+				groupsFound++
+				if groupsFound == groups+1 {
+					err = writeDecodeBuffer(
+						decodeFunc, buffer, chars, groups, key, writer)
+					if err != nil {
+						writer.CloseWithError(err)
+						return
+					}
+					buffer = make([]byte, 0)
+					groupsFound = 1
+				}
+			}
+			buffer = append(buffer, b[0])
+		}
+	}()
+
+	return reader, nil
+}
+
+func writeDecodeBuffer(
+	decodeFunc func(Key, DecodeGroup) (byte, error),
+	buffer []byte,
+	chars DictionaryChars,
+	groups int,
+	key Key,
+	writer io.Writer,
+) error {
+	decodeGroups, err := findDecodeGroups(buffer, chars, groups)
+	if err != nil {
+		return err
+	}
+	decoded, err := decodeBytes(key, decodeGroups, decodeFunc)
+	if err != nil {
+		return err
+	}
+	_, err = writer.Write(decoded)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func findDecodeGroups(
@@ -109,7 +234,8 @@ func findDecodeGroups(
 	numGroups int,
 ) (decodeGroups []DecodeGroup, err error) {
 	if !characters.CheckIn(input[0]) {
-		return decodeGroups, errors.New("no decode characters found")
+		return decodeGroups, errors.New(
+			"no decode characters found")
 	}
 	decode := DecodeGroup{
 		kind:  []uint8{},

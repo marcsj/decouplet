@@ -3,6 +3,7 @@ package decouplet
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"strconv"
 	"time"
@@ -84,8 +85,18 @@ func TranscodeBytesConcurrent(input []byte, key []byte) ([]byte, error) {
 		input, keyBytes(key), findBytePattern)
 }
 
+func TranscodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
+	return TranscodeStream(
+		input, keyBytes(key), findBytePattern)
+}
+
 func TransdecodeBytes(input []byte, key []byte) ([]byte, error) {
 	return Transdecode(
+		input, keyBytes(key), 2, getByteDefs)
+}
+
+func TransdecodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
+	return TransdecodeStream(
 		input, keyBytes(key), 2, getByteDefs)
 }
 
