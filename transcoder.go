@@ -78,6 +78,59 @@ func TranscodeStream(
 	return reader, nil
 }
 
+func TranscodeStreamPartial(
+	input io.Reader,
+	key Key,
+	take int,
+	skip int,
+	encoder func(byte, Key) ([]byte, error),
+) (reader io.Reader, err error) {
+	reader, writer := io.Pipe()
+	go func() {
+		taken := 0
+		skipped := 0
+		taking := true
+		for {
+			b := make([]byte, 1)
+			_, err := input.Read(b)
+			if err != nil {
+				if err == io.EOF {
+					writer.Close()
+					return
+				}
+				writer.CloseWithError(err)
+				return
+			}
+			if taking {
+				m, err := encoder(b[0], key)
+				if err != nil {
+					writer.CloseWithError(err)
+				}
+				_, err = writer.Write(m)
+				if err != nil {
+					writer.CloseWithError(err)
+				}
+				taken++
+				if taken > take {
+					taken = 0
+					taking = false
+				}
+			} else {
+				_, err = writer.Write(b)
+				if err != nil {
+					writer.CloseWithError(err)
+				}
+				skip++
+				if skipped > skip {
+					skipped = 0
+					taking = true
+				}
+			}
+		}
+	}()
+	return reader, nil
+}
+
 func TranscodeConcurrent(
 	input []byte,
 	key Key,
