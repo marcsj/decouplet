@@ -221,24 +221,12 @@ func TransdecodeStream(
 	reader, writer := io.Pipe()
 	go func() {
 		for {
-			b := make([]byte, 1)
-			_, err := input.Read(b)
+			b, err := readTranscodedStream(
+				input, writer, buffer, key, groups, decodeFunc)
 			if err != nil {
-				if err == io.EOF {
-					err = writeDecodeBuffer(
-						decodeFunc, buffer, chars, groups, key, writer)
-					if err != nil {
-						writer.CloseWithError(err)
-						return
-					}
-					writer.Close()
-					return
-				} else {
-					writer.CloseWithError(err)
-					return
-				}
+				writer.CloseWithError(err)
 			}
-			if chars.CheckIn(b[0]) {
+			if chars.CheckIn(b) {
 				groupsFound++
 				if groupsFound == groups+1 {
 					err = writeDecodeBuffer(
@@ -251,11 +239,37 @@ func TransdecodeStream(
 					groupsFound = 1
 				}
 			}
-			buffer = append(buffer, b[0])
+			buffer = append(buffer, b)
 		}
 	}()
 
 	return reader, nil
+}
+
+func readTranscodedStream(
+	input io.Reader,
+	writer *io.PipeWriter,
+	buffer []byte,
+	key Key,
+	groups int,
+	decodeFunc func(Key, DecodeGroup) (byte, error),
+) (byte, error) {
+	chars := key.GetDictionaryChars()
+	b := make([]byte, 1)
+	_, err := input.Read(b)
+	if err != nil {
+		if err == io.EOF {
+			err = writeDecodeBuffer(
+				decodeFunc, buffer, chars, groups, key, writer)
+			if err != nil {
+				return b[0], err
+			}
+			writer.Close()
+		} else {
+			return b[0], err
+		}
+	}
+	return b[0], nil
 }
 
 func writeDecodeBuffer(
