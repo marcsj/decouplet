@@ -111,7 +111,7 @@ func TranscodeStreamPartial(
 					writer.CloseWithError(err)
 				}
 				taken++
-				if taken > take {
+				if taken >= take {
 					taken = 0
 					taking = false
 				}
@@ -120,8 +120,8 @@ func TranscodeStreamPartial(
 				if err != nil {
 					writer.CloseWithError(err)
 				}
-				skip++
-				if skipped > skip {
+				skipped++
+				if skipped >= skip {
 					skipped = 0
 					taking = true
 				}
