@@ -1,8 +1,10 @@
 package decouplet
 
 import (
+	"bytes"
 	"errors"
 	"io"
+	"io/ioutil"
 	"sync"
 )
 
@@ -87,47 +89,38 @@ func TranscodeStreamPartial(
 ) (reader io.Reader, err error) {
 	reader, writer := io.Pipe()
 	go func() {
-		taken := 0
-		skipped := 0
-		taking := true
+		defer writer.Close()
 		for {
-			b := make([]byte, 1)
-			_, err := input.Read(b)
+			takeBytes := make([]byte, take)
+			skip := make([]byte, skip)
+			_, err := input.Read(takeBytes)
 			if err != nil {
-				if err == io.EOF {
-					writer.Close()
-					return
-				}
-				writer.CloseWithError(err)
 				return
 			}
-			if taking {
-				m, err := encoder(b[0], key)
-				if err != nil {
-					writer.CloseWithError(err)
-				}
-				_, err = writer.Write(m)
-				if err != nil {
-					writer.CloseWithError(err)
-				}
-				taken++
-				if taken >= take {
-					taken = 0
-					taking = false
-				}
-			} else {
-				_, err = writer.Write(b)
-				if err != nil {
-					writer.CloseWithError(err)
-				}
-				skipped++
-				if skipped >= skip {
-					skipped = 0
-					taking = true
-				}
+			r := bytes.NewReader(takeBytes)
+			tcReader, err := TranscodeStream(r, key, encoder)
+			if err != nil {
+				return
+			}
+			b, err := ioutil.ReadAll(tcReader)
+			if err != nil {
+				return
+			}
+			_, err = writer.Write(b)
+			if err != nil {
+				return
+			}
+			_, err = input.Read(skip)
+			if err != nil {
+				return
+			}
+			_, err = writer.Write(skip)
+			if err != nil {
+				return
 			}
 		}
 	}()
+
 	return reader, nil
 }
 
@@ -225,6 +218,7 @@ func TransdecodeStream(
 				input, writer, buffer, key, groups, decodeFunc)
 			if err != nil {
 				writer.CloseWithError(err)
+				return
 			}
 			if chars.CheckIn(b) {
 				if groupsFound == groups {
