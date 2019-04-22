@@ -227,8 +227,7 @@ func TransdecodeStream(
 				writer.CloseWithError(err)
 			}
 			if chars.CheckIn(b) {
-				groupsFound++
-				if groupsFound == groups+1 {
+				if groupsFound == groups {
 					err = writeDecodeBuffer(
 						decodeFunc, buffer, chars, groups, key, writer)
 					if err != nil {
@@ -236,8 +235,9 @@ func TransdecodeStream(
 						return
 					}
 					buffer = make([]byte, 0)
-					groupsFound = 1
+					groupsFound = 0
 				}
+				groupsFound++
 			}
 			buffer = append(buffer, b)
 		}
@@ -271,6 +271,85 @@ func readTranscodedStream(
 	}
 	return b[0], nil
 }
+
+//func TransdecodeStreamPartial(
+//	input io.Reader,
+//	key Key,
+//	groups int,
+//	take int,
+//	skip int,
+//	decodeFunc func(Key, DecodeGroup) (byte, error),
+//) (output io.Reader, err error) {
+//	chars := key.GetDictionaryChars()
+//	groupsFound := 0
+//	buffer := make([]byte, 0)
+//	reader, writer := io.Pipe()
+//	go func() {
+//		taken := 0
+//		taking := true
+//		for {
+//			if !taking {
+//				b := make([]byte, skip)
+//				_, err := input.Read(b)
+//				if err != nil {
+//					writer.CloseWithError(err)
+//					return
+//				}
+//				_, err = writer.Write(b)
+//				if err != nil {
+//					writer.CloseWithError(err)
+//				}
+//				println("Bytes to send skipped", string(b))
+//				println("Going from skipping to taking")
+//				taking = true
+//			} else {
+//				println("I to go through:", take*groups)
+//				for i := 0; i < take*groups; i++ {
+//					if taken == take {
+//						println("NOT TAKING ANYMORE", taken, "/", take)
+//						taken = 0
+//						taking = false
+//					}
+//					b := make([]byte, 1)
+//					_, err := input.Read(b)
+//					if err != nil {
+//						if err == io.EOF {
+//							err = writeDecodeBuffer(
+//								decodeFunc, buffer, chars, groups, key, writer)
+//							if err != nil {
+//								writer.CloseWithError(err)
+//								return
+//							}
+//							writer.Close()
+//							return
+//						} else {
+//							writer.CloseWithError(err)
+//							return
+//						}
+//					}
+//					if chars.CheckIn(b[0]) {
+//						groupsFound++
+//						if groupsFound == groups+1 {
+//							err = writeDecodeBuffer(
+//								decodeFunc, buffer, chars, groups, key, writer)
+//							if err != nil {
+//								writer.CloseWithError(err)
+//								return
+//							}
+//							buffer = make([]byte, 0)
+//							taken++
+//							println("TAKING:", taken)
+//							groupsFound = 1
+//						}
+//					}
+//					buffer = append(buffer, b[0])
+//				}
+//			}
+//		}
+//	}()
+//
+//	return reader, nil
+//}
 
 func writeDecodeBuffer(
 	decodeFunc func(Key, DecodeGroup) (byte, error),
