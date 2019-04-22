@@ -1,6 +1,8 @@
 package decouplet
 
-const errorMatchNotFound = "match not found"
+const errorMatchNotFound string = "match not found"
+const partialStart string = "<.;["
+const partialEnd string = "];tc.>"
 
 type TranscoderType string
 

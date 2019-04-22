@@ -91,6 +91,10 @@ func TranscodeStreamPartial(
 	go func() {
 		defer writer.Close()
 		for {
+			_, err = writer.Write([]byte(partialStart))
+			if err != nil {
+				return
+			}
 			takeBytes := make([]byte, take)
 			skip := make([]byte, skip)
 			_, err := input.Read(takeBytes)
@@ -102,11 +106,16 @@ func TranscodeStreamPartial(
 			if err != nil {
 				return
 			}
-			b, err := ioutil.ReadAll(tcReader)
+			tcBytes, err := ioutil.ReadAll(tcReader)
 			if err != nil {
 				return
 			}
-			_, err = writer.Write(b)
+
+			_, err = writer.Write(tcBytes)
+			if err != nil {
+				return
+			}
+			_, err = writer.Write([]byte(partialEnd))
 			if err != nil {
 				return
 			}
