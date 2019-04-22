@@ -227,8 +227,7 @@ func TransdecodeStream(
 				writer.CloseWithError(err)
 			}
 			if chars.CheckIn(b) {
-				groupsFound++
-				if groupsFound == groups+1 {
+				if groupsFound == groups {
 					err = writeDecodeBuffer(
 						decodeFunc, buffer, chars, groups, key, writer)
 					if err != nil {
@@ -236,8 +235,9 @@ func TransdecodeStream(
 						return
 					}
 					buffer = make([]byte, 0)
-					groupsFound = 1
+					groupsFound = 0
 				}
+				groupsFound++
 			}
 			buffer = append(buffer, b)
 		}
