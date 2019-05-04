@@ -104,3 +104,25 @@ func TestTranscodeBytesConcurrent(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestTranscodeBytesConcurrentPartial(t *testing.T) {
+	key := []byte("tEst Key3#$!@&*()[]:;")
+	msg := []byte("Test this message and see it stream and be partially encoded! here")
+	take := 1
+	skip := 3
+	input := bytes.NewReader(msg)
+	reader, err := TranscodeBytesStreamPartial(input, key, take, skip)
+	if err != nil {
+		t.Error(err)
+	}
+	newReader, err := TransdecodeBytesStreamPartial(reader, key)
+	if err != nil {
+		t.Error(err)
+	}
+	b, err := ioutil.ReadAll(newReader)
+	t.Log(string(b))
+	if !bytes.Equal(msg, b) {
+		t.Log("bytes are not equal")
+		t.Fail()
+	}
+}

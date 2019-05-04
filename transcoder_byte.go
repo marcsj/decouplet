@@ -25,7 +25,7 @@ func (keyBytes) GetKeyType() TranscoderType {
 }
 
 func (keyBytes) GetDictionaryChars() DictionaryChars {
-	return DictionaryChars("abcdefghij")
+	return DictionaryChars("abcdefghijk")
 }
 
 func (keyBytes) GetDictionary() Dictionary {
@@ -33,42 +33,46 @@ func (keyBytes) GetDictionary() Dictionary {
 		decoders: []Decoder{
 			{
 				character: 'a',
-				amount:    1,
+				amount:    0,
 			},
 			{
 				character: 'b',
-				amount:    2,
+				amount:    1,
 			},
 			{
 				character: 'c',
-				amount:    4,
+				amount:    2,
 			},
 			{
 				character: 'd',
-				amount:    6,
+				amount:    4,
 			},
 			{
 				character: 'e',
-				amount:    8,
+				amount:    6,
 			},
 			{
 				character: 'f',
-				amount:    10,
+				amount:    8,
 			},
 			{
 				character: 'g',
-				amount:    16,
+				amount:    10,
 			},
 			{
 				character: 'h',
-				amount:    32,
+				amount:    16,
 			},
 			{
 				character: 'i',
-				amount:    64,
+				amount:    32,
 			},
 			{
 				character: 'j',
+				amount:    64,
+			},
+			{
+				character: 'k',
 				amount:    128,
 			},
 		},
@@ -90,6 +94,11 @@ func TranscodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
 		input, keyBytes(key), findBytePattern)
 }
 
+func TranscodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) (io.Reader, error) {
+	return TranscodeStreamPartial(
+		input, keyBytes(key), take, skip, findBytePattern)
+}
+
 func TransdecodeBytes(input []byte, key []byte) ([]byte, error) {
 	return Transdecode(
 		input, keyBytes(key), 2, getByteDefs)
@@ -97,6 +106,11 @@ func TransdecodeBytes(input []byte, key []byte) ([]byte, error) {
 
 func TransdecodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
 	return TransdecodeStream(
+		input, keyBytes(key), 2, getByteDefs)
+}
+
+func TransdecodeBytesStreamPartial(input io.Reader, key []byte) (io.Reader, error) {
+	return TransdecodeStreamPartial(
 		input, keyBytes(key), 2, getByteDefs)
 }
 
