@@ -1,6 +1,11 @@
 package decouplet
 
-const errorMatchNotFound = "match not found"
+const errorMatchNotFound string = "match not found"
+const partialStart string = ";[&"
+const partialEnd string = "&];"
+
+var partialStartBytes = []byte(partialStart)
+var partialEndBytes = []byte(partialEnd)
 
 type TranscoderType string
 

@@ -1,6 +1,8 @@
 package decouplet
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"io"
 	"sync"
@@ -53,7 +55,11 @@ func TranscodeStream(
 	encoder func(byte, Key) ([]byte, error),
 ) (reader io.Reader, err error) {
 	reader, writer := io.Pipe()
-	go func() {
+	go func(
+		input io.Reader,
+		writer *io.PipeWriter,
+		encoder func(byte, Key) ([]byte, error),
+		key Key) {
 		for {
 			b := make([]byte, 1)
 			_, err := input.Read(b)
@@ -74,8 +80,62 @@ func TranscodeStream(
 				writer.CloseWithError(err)
 			}
 		}
-	}()
+	}(input, writer, encoder, key)
 	return reader, nil
+}
+
+func TranscodeStreamPartial(
+	input io.Reader,
+	key Key,
+	take int,
+	skip int,
+	encoder func(byte, Key) ([]byte, error),
+) (reader io.Reader, err error) {
+	reader, writer := io.Pipe()
+
+	go writeTranscodeStreamPartial(
+		input, writer, key, take, skip, encoder)
+
+	return reader, nil
+}
+
+func writeTranscodeStreamPartial(
+	input io.Reader,
+	writer *io.PipeWriter,
+	key Key,
+	take int,
+	skip int,
+	encoder func(byte, Key) ([]byte, error),
+) {
+	defer writer.Close()
+	for {
+		_, err := writer.Write(partialStartBytes)
+		if err != nil {
+			writer.CloseWithError(err)
+			return
+		}
+		takeR := io.LimitReader(input, int64(take))
+		transcodedR, err := TranscodeStream(takeR, key, encoder)
+		if err != nil {
+			writer.CloseWithError(err)
+			return
+		}
+		_, err = io.Copy(writer, transcodedR)
+		if err != nil {
+			writer.CloseWithError(err)
+			return
+		}
+		_, err = writer.Write(partialEndBytes)
+		if err != nil {
+			writer.CloseWithError(err)
+			return
+		}
+		_, err = io.CopyN(writer, input, int64(skip))
+		if err != nil {
+			writer.CloseWithError(err)
+			return
+		}
+	}
 }
 
 func TranscodeConcurrent(
@@ -168,52 +228,133 @@ func TransdecodeStream(
 	reader, writer := io.Pipe()
 	go func() {
 		for {
-			b := make([]byte, 1)
-			_, err := input.Read(b)
+			b, err := readTranscodedStream(
+				input, writer, buffer, key, groups, decodeFunc)
 			if err != nil {
-				if err == io.EOF {
-					err = writeDecodeBuffer(
-						decodeFunc, buffer, chars, groups, key, writer)
-					if err != nil {
-						writer.CloseWithError(err)
-						return
-					}
-					writer.Close()
-					return
-				} else {
-					writer.CloseWithError(err)
-					return
-				}
+				writer.CloseWithError(err)
+				return
 			}
-			if chars.CheckIn(b[0]) {
-				groupsFound++
-				if groupsFound == groups+1 {
+			if chars.CheckIn(b) {
+				if groupsFound == groups {
 					err = writeDecodeBuffer(
-						decodeFunc, buffer, chars, groups, key, writer)
+						decodeFunc, buffer, groups, key, writer)
 					if err != nil {
 						writer.CloseWithError(err)
 						return
 					}
 					buffer = make([]byte, 0)
-					groupsFound = 1
+					groupsFound = 0
 				}
+				groupsFound++
 			}
-			buffer = append(buffer, b[0])
+			buffer = append(buffer, b)
 		}
 	}()
 
 	return reader, nil
 }
 
+func transdecodeStreamParted(
+	input io.Reader,
+	key Key,
+	groups int,
+	decodeFunc func(Key, DecodeGroup) (byte, error),
+	writer *io.PipeWriter,
+) {
+	defer writer.Close()
+
+	scanner := bufio.NewScanner(input)
+	scanner.Split(scanTdcSplit)
+
+	for scanner.Scan() {
+		splitBytes := bytes.SplitAfter(scanner.Bytes(), partialStartBytes)
+		var skipped []byte
+		if len(splitBytes[0]) < len(partialStartBytes) {
+			skipped = splitBytes[0][0:len(splitBytes[0])]
+		} else {
+			skipped = splitBytes[0][0 : len(splitBytes[0])-len(partialStartBytes)]
+		}
+		_, err := writer.Write(skipped)
+		if err != nil {
+			writer.CloseWithError(err)
+		}
+		if len(splitBytes) > 1 {
+			if len(splitBytes[1]) > 0 {
+				readBytes := splitBytes[1]
+				err := writeDecodeBuffer(decodeFunc, readBytes, groups, key, writer)
+				if err != nil {
+					if err != io.EOF {
+						writer.CloseWithError(err)
+					}
+				}
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		writer.CloseWithError(err)
+	}
+}
+
+func scanTdcSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.Index(data, partialEndBytes); i >= 0 {
+		return i + len(partialStartBytes), data[0:i], nil
+	}
+	if atEOF {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
+}
+
+func TransdecodeStreamPartial(
+	input io.Reader,
+	key Key,
+	groups int,
+	decodeFunc func(Key, DecodeGroup) (byte, error),
+) (output io.Reader, err error) {
+	reader, writer := io.Pipe()
+
+	go transdecodeStreamParted(input, key, groups, decodeFunc, writer)
+
+	return reader, nil
+}
+
+func readTranscodedStream(
+	input io.Reader,
+	writer *io.PipeWriter,
+	buffer []byte,
+	key Key,
+	groups int,
+	decodeFunc func(Key, DecodeGroup) (byte, error),
+) (byte, error) {
+	b := make([]byte, 1)
+	_, err := input.Read(b)
+	if err != nil {
+		if err == io.EOF {
+			err = writeDecodeBuffer(
+				decodeFunc, buffer, groups, key, writer)
+			if err != nil {
+				return b[0], err
+			}
+			writer.Close()
+		} else {
+			return b[0], err
+		}
+	}
+	return b[0], nil
+}
+
 func writeDecodeBuffer(
 	decodeFunc func(Key, DecodeGroup) (byte, error),
 	buffer []byte,
-	chars DictionaryChars,
 	groups int,
 	key Key,
 	writer io.Writer,
 ) error {
-	decodeGroups, err := findDecodeGroups(buffer, chars, groups)
+	decodeGroups, err := findDecodeGroups(buffer, key.GetDictionaryChars(), groups)
 	if err != nil {
 		return err
 	}

@@ -103,6 +103,11 @@ func TranscodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
 		input, imageKey{key}, findPixelPattern)
 }
 
+func TranscodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) (io.Reader, error) {
+	return TranscodeStreamPartial(
+		input, imageKey{key}, take, skip, findPixelPattern)
+}
+
 func TranscodeImageConcurrent(input []byte, key image.Image) ([]byte, error) {
 	return TranscodeConcurrent(
 		input, imageKey{key}, findPixelPattern)
@@ -116,6 +121,11 @@ func TransdecodeImage(input []byte, key image.Image) ([]byte, error) {
 
 func TransdecodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
 	return TransdecodeStream(
+		input, imageKey{key}, 2, getImgDefs)
+}
+
+func TransdecodeImageStreamPartial(input io.Reader, key image.Image) (io.Reader, error) {
+	return TransdecodeStreamPartial(
 		input, imageKey{key}, 2, getImgDefs)
 }
 
