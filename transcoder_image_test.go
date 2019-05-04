@@ -119,3 +119,28 @@ func TestTranscodeImageConcurrent(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestTranscodeImageConcurrentPartial(t *testing.T) {
+	image, err := LoadImage("images/test.jpg")
+	if err != nil {
+		t.Error(err)
+	}
+	take := 1
+	skip := 3
+	msg := []byte("Test this message and see it stream, using partial encoding.")
+	input := bytes.NewReader(msg)
+	reader, err := TranscodeImageStreamPartial(input, image, take, skip)
+	if err != nil {
+		t.Error(err)
+	}
+	newReader, err := TransdecodeImageStreamPartial(reader, image)
+	if err != nil {
+		t.Error(err)
+	}
+	b, err := ioutil.ReadAll(newReader)
+	t.Log(string(b))
+	if !bytes.Equal(msg, b) {
+		t.Log("bytes are not equal")
+		t.Fail()
+	}
+}
