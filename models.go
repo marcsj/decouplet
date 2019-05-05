@@ -1,30 +1,33 @@
 package decouplet
 
-const errorMatchNotFound string = "match not found"
+import "errors"
+
+var errorMatchNotFound = errors.New("match not found")
+
 const partialStart string = ";[&"
 const partialEnd string = "&];"
 
 var partialStartBytes = []byte(partialStart)
 var partialEndBytes = []byte(partialEnd)
 
-type TranscoderType string
+type encoderType string
 
-type DictionaryChars string
+type dictionaryChars string
 
-type ByteGroup struct {
+type byteGroup struct {
 	bytes []byte
 }
 
-type DecodeGroup struct {
+type decodeGroup struct {
 	kind  []uint8
 	place []string
 }
 
-type Dictionary struct {
-	decoders []Decoder
+type dictionary struct {
+	decoders []decodeRef
 }
 
-type Decoder struct {
+type decodeRef struct {
 	character uint8
 	amount    uint8
 }
@@ -34,7 +37,7 @@ type location struct {
 	y int
 }
 
-func (chars DictionaryChars) CheckIn(a byte) bool {
+func (chars dictionaryChars) checkIn(a byte) bool {
 	for i := range chars {
 		if a == chars[i] {
 			return true

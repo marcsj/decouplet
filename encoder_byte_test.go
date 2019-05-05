@@ -7,17 +7,17 @@ import (
 	"testing"
 )
 
-func TestTranscodeBytes(t *testing.T) {
-	newMessage, err := TranscodeBytes([]byte("Test"), []byte("tEst Key3#$"))
+func TestEncodeBytes(t *testing.T) {
+	newMessage, err := EncodeBytes([]byte("Test"), []byte("tEst Key3#$T234"))
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(string(newMessage))
 }
 
-func TestTransdecodeBytes(t *testing.T) {
-	message, err := TransdecodeBytes(
-		[]byte("[dcplt-bytetc-0.1]a9c0e8j4j8d4j8c9"), []byte("tEst Key3#$"))
+func TestDecoderBytes(t *testing.T) {
+	message, err := DecodeBytes(
+		[]byte("[dcplt-byteec-0.2]a9c0e8j4j8d4j8c9"), []byte("tEst Key3#$"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -28,13 +28,13 @@ func TestByteMessage(t *testing.T) {
 	originalMessage :=
 		"!!**_-+Test THIS bigger message with More Symbols" +
 			"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@"
-	newMessage, err := TranscodeBytes(
-		[]byte(originalMessage), []byte("Test Key!@# $"))
+	newMessage, err := EncodeBytes(
+		[]byte(originalMessage), []byte("Test encodingKey!@# $"))
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(string(newMessage))
-	message, err := TransdecodeBytes(newMessage, []byte("Test Key!@# $"))
+	message, err := DecodeBytes(newMessage, []byte("Test encodingKey!@# $"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -61,15 +61,15 @@ func TestByteMessage_Byte(t *testing.T) {
 	}
 	key := []byte(
 		"$#%#%@#$@$)*^_#@$*^)@$)@#" +
-			"^@#%@#)^Test byte Key!@#$" +
+			"^@#%@#)^Test byte encodingKey!@#$" +
 			"^GEWg gwefwgwef _#$%@#$%L",
 	)
 	t.Log("Length of original:", len(fileBytes))
-	newMessage, err := TranscodeBytesConcurrent(fileBytes, key)
+	newMessage, err := EncodeBytesConcurrent(fileBytes, key)
 	if err != nil {
 		t.Error(err)
 	}
-	message, err := TransdecodeBytes(newMessage, key)
+	message, err := DecodeBytes(newMessage, key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -85,15 +85,15 @@ func TestByteMessage_Byte(t *testing.T) {
 	}
 }
 
-func TestTranscodeBytesConcurrent(t *testing.T) {
+func TestEncodeBytesConcurrent(t *testing.T) {
 	key := []byte("tEst Key3#$!@&*()[]:;")
 	msg := []byte("Test this message and see it stream")
 	input := bytes.NewReader(msg)
-	reader, err := TranscodeBytesStream(input, key)
+	reader, err := EncodeBytesStream(input, key)
 	if err != nil {
 		t.Error(err)
 	}
-	newReader, err := TransdecodeBytesStream(reader, key)
+	newReader, err := DecodeBytesStream(reader, key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,17 +105,17 @@ func TestTranscodeBytesConcurrent(t *testing.T) {
 	}
 }
 
-func TestTranscodeBytesConcurrentPartial(t *testing.T) {
+func TestEncodeBytesConcurrentPartial(t *testing.T) {
 	key := []byte("tEst Key3#$!@&*()[]:;")
 	msg := []byte("Test this message and see it stream and be partially encoded! here")
 	take := 1
 	skip := 3
 	input := bytes.NewReader(msg)
-	reader, err := TranscodeBytesStreamPartial(input, key, take, skip)
+	reader, err := EncodeBytesStreamPartial(input, key, take, skip)
 	if err != nil {
 		t.Error(err)
 	}
-	newReader, err := TransdecodeBytesStreamPartial(reader, key)
+	newReader, err := DecodeByteStreamPartial(reader, key)
 	if err != nil {
 		t.Error(err)
 	}

@@ -1,11 +1,11 @@
 # decouplet
 
-Transcoder library for decoupling bytes using variable length keys in Go. 
+Encoding library for decoupling bytes using variable length keys in Go. 
 This library takes bytes, looks at a key and takes deltas, 
 and outputs a message as measurements of that key- 
 effectively decoupling any meaning from a message without a key.
 
-### Transcoder Types
+### Encoder Types
 
 Type | Key | Delta
 -----|-----|------
