@@ -20,7 +20,7 @@ type byteChecked struct {
 
 type keyBytes []byte
 
-func (keyBytes) GetKeyType() encoderType {
+func (keyBytes) GetType() encoderType {
 	return encoderType("byteec")
 }
 

@@ -19,7 +19,7 @@ func encode(
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
 ) (output []byte, err error) {
-	b, err := WriteVersion(key.GetType())
+	bytes, err := WriteVersion(key.GetType())
 	if err != nil {
 		return nil, err
 	}
@@ -43,10 +43,10 @@ func encode(
 
 	for _, byteGroup := range byteGroups {
 		for _, b := range byteGroup.bytes {
-			b = append(b, b)
+			bytes = append(bytes, b)
 		}
 	}
-	return b, nil
+	return bytes, nil
 }
 
 func encodeStream(

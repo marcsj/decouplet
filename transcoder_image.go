@@ -19,7 +19,7 @@ type imageKey struct {
 	image.Image
 }
 
-func (imageKey) GetKeyType() encoderType {
+func (imageKey) GetType() encoderType {
 	return encoderType("imgec")
 }
 
