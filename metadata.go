@@ -57,7 +57,7 @@ func CheckEncoder(
 		*message = (*message)[metaSize:]
 		return nil
 	}
-	return errors.New("Encoder version does not match")
+	return errors.New("encoder version does not match")
 }
 
 func WriteVersion(EncoderType encoderType) ([]byte, error) {
