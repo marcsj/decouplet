@@ -9,7 +9,7 @@ import (
 )
 
 type encodingKey interface {
-	GetKeyType() encoderType
+	GetType() encoderType
 	GetDictionaryChars() dictionaryChars
 	GetDictionary() dictionary
 }
@@ -19,7 +19,7 @@ func encode(
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
 ) (output []byte, err error) {
-	bytes, err := WriteVersion(key.GetKeyType())
+	b, err := WriteVersion(key.GetType())
 	if err != nil {
 		return nil, err
 	}
@@ -43,10 +43,10 @@ func encode(
 
 	for _, byteGroup := range byteGroups {
 		for _, b := range byteGroup.bytes {
-			bytes = append(bytes, b)
+			b = append(b, b)
 		}
 	}
-	return bytes, nil
+	return b, nil
 }
 
 func encodeStream(
@@ -143,7 +143,7 @@ func encodeConcurrent(
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
 ) (output []byte, err error) {
-	bytes, err := WriteVersion(key.GetKeyType())
+	bytes, err := WriteVersion(key.GetType())
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func decode(
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output []byte, err error) {
-	err = CheckEncoder(key.GetKeyType(), &input)
+	err = CheckEncoder(key.GetType(), &input)
 	if err != nil {
 		return nil, err
 	}
