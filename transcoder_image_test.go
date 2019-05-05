@@ -7,25 +7,25 @@ import (
 	"testing"
 )
 
-func TestTranscodeImage(t *testing.T) {
+func TestEncodeImage(t *testing.T) {
 	image, err := LoadImage("images/test.png")
 	if err != nil {
 		t.Error(err)
 	}
-	newMessage, err := TranscodeImage([]byte("Test"), image)
+	newMessage, err := EncodeImage([]byte("Test"), image)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(string(newMessage))
 }
 
-func TestTransdecodeImage(t *testing.T) {
+func TestDecoderImage(t *testing.T) {
 	image, err := LoadImage("images/test.png")
 	if err != nil {
 		t.Error(err)
 	}
-	message, err := TransdecodeImage([]byte(
-		"[dcplt-imgtc-0.2]a182145r90241r590295k137282r6777k139200r460987c138337",
+	message, err := DecodeImage([]byte(
+		"[dcplt-imgec-0.2]a182145r90241r590295k137282r6777k139200r460987c138337",
 	), image)
 	if err != nil {
 		t.Error(err)
@@ -41,13 +41,13 @@ func TestImageMessage(t *testing.T) {
 	originalMessage :=
 		"!!**_-+Test THIS bigger message with More Symbols" +
 			"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@"
-	newMessage, err := TranscodeImage(
+	newMessage, err := EncodeImage(
 		[]byte(originalMessage), image)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(string(newMessage))
-	message, err := TransdecodeImage(newMessage, image)
+	message, err := DecodeImage(newMessage, image)
 	if err != nil {
 		t.Error(err)
 	}
@@ -77,11 +77,11 @@ func TestImageMessage_Image(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	newMessage, err := TranscodeImageConcurrent(fileBytes, image)
+	newMessage, err := EncodeImageConcurrent(fileBytes, image)
 	if err != nil {
 		t.Error(err)
 	}
-	message, err := TransdecodeImage(newMessage, image)
+	message, err := DecodeImage(newMessage, image)
 	if err != nil {
 		t.Error(err)
 	}
@@ -97,18 +97,18 @@ func TestImageMessage_Image(t *testing.T) {
 	}
 }
 
-func TestTranscodeImageConcurrent(t *testing.T) {
+func TestEncodeImageConcurrent(t *testing.T) {
 	image, err := LoadImage("images/test.jpg")
 	if err != nil {
 		t.Error(err)
 	}
 	msg := []byte("Test this message and see it stream")
 	input := bytes.NewReader(msg)
-	reader, err := TranscodeImageStream(input, image)
+	reader, err := EncodeImageStream(input, image)
 	if err != nil {
 		t.Error(err)
 	}
-	newReader, err := TransdecodeImageStream(reader, image)
+	newReader, err := DecodeImageStream(reader, image)
 	if err != nil {
 		t.Error(err)
 	}
@@ -120,7 +120,7 @@ func TestTranscodeImageConcurrent(t *testing.T) {
 	}
 }
 
-func TestTranscodeImageConcurrentPartial(t *testing.T) {
+func TestEncodeImageConcurrentPartial(t *testing.T) {
 	image, err := LoadImage("images/test.jpg")
 	if err != nil {
 		t.Error(err)
@@ -129,11 +129,11 @@ func TestTranscodeImageConcurrentPartial(t *testing.T) {
 	skip := 3
 	msg := []byte("Test this message and see it stream, using partial encoding.")
 	input := bytes.NewReader(msg)
-	reader, err := TranscodeImageStreamPartial(input, image, take, skip)
+	reader, err := EncodeImageStreamPartial(input, image, take, skip)
 	if err != nil {
 		t.Error(err)
 	}
-	newReader, err := TransdecodeImageStreamPartial(reader, image)
+	newReader, err := DecodeImageStreamPartial(reader, image)
 	if err != nil {
 		t.Error(err)
 	}

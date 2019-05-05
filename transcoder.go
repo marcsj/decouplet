@@ -8,23 +8,23 @@ import (
 	"sync"
 )
 
-type Key interface {
-	GetKeyType() TranscoderType
-	GetDictionaryChars() DictionaryChars
-	GetDictionary() Dictionary
+type encodingKey interface {
+	GetKeyType() encoderType
+	GetDictionaryChars() dictionaryChars
+	GetDictionary() dictionary
 }
 
-func Transcode(
+func encode(
 	input []byte,
-	key Key,
-	encoder func(byte, Key) ([]byte, error),
+	key encodingKey,
+	encoder func(byte, encodingKey) ([]byte, error),
 ) (output []byte, err error) {
 	bytes, err := WriteVersion(key.GetKeyType())
 	if err != nil {
 		return nil, err
 	}
 
-	byteGroups := make([]ByteGroup, len(input))
+	byteGroups := make([]byteGroup, len(input))
 	errorCh := make(chan error, len(input))
 	wg := &sync.WaitGroup{}
 	wg.Add(len(input))
@@ -49,17 +49,17 @@ func Transcode(
 	return bytes, nil
 }
 
-func TranscodeStream(
+func encodeStream(
 	input io.Reader,
-	key Key,
-	encoder func(byte, Key) ([]byte, error),
+	key encodingKey,
+	encoder func(byte, encodingKey) ([]byte, error),
 ) (reader io.Reader, err error) {
 	reader, writer := io.Pipe()
 	go func(
 		input io.Reader,
 		writer *io.PipeWriter,
-		encoder func(byte, Key) ([]byte, error),
-		key Key) {
+		encoder func(byte, encodingKey) ([]byte, error),
+		key encodingKey) {
 		for {
 			b := make([]byte, 1)
 			_, err := input.Read(b)
@@ -84,28 +84,28 @@ func TranscodeStream(
 	return reader, nil
 }
 
-func TranscodeStreamPartial(
+func encodePartialStream(
 	input io.Reader,
-	key Key,
+	key encodingKey,
 	take int,
 	skip int,
-	encoder func(byte, Key) ([]byte, error),
+	encoder func(byte, encodingKey) ([]byte, error),
 ) (reader io.Reader, err error) {
 	reader, writer := io.Pipe()
 
-	go writeTranscodeStreamPartial(
+	go writeEncodeStreamPartial(
 		input, writer, key, take, skip, encoder)
 
 	return reader, nil
 }
 
-func writeTranscodeStreamPartial(
+func writeEncodeStreamPartial(
 	input io.Reader,
 	writer *io.PipeWriter,
-	key Key,
+	key encodingKey,
 	take int,
 	skip int,
-	encoder func(byte, Key) ([]byte, error),
+	encoder func(byte, encodingKey) ([]byte, error),
 ) {
 	defer writer.Close()
 	for {
@@ -115,12 +115,12 @@ func writeTranscodeStreamPartial(
 			return
 		}
 		takeR := io.LimitReader(input, int64(take))
-		transcodedR, err := TranscodeStream(takeR, key, encoder)
+		EncodedR, err := encodeStream(takeR, key, encoder)
 		if err != nil {
 			writer.CloseWithError(err)
 			return
 		}
-		_, err = io.Copy(writer, transcodedR)
+		_, err = io.Copy(writer, EncodedR)
 		if err != nil {
 			writer.CloseWithError(err)
 			return
@@ -138,17 +138,17 @@ func writeTranscodeStreamPartial(
 	}
 }
 
-func TranscodeConcurrent(
+func encodeConcurrent(
 	input []byte,
-	key Key,
-	encoder func(byte, Key) ([]byte, error),
+	key encodingKey,
+	encoder func(byte, encodingKey) ([]byte, error),
 ) (output []byte, err error) {
 	bytes, err := WriteVersion(key.GetKeyType())
 	if err != nil {
 		return nil, err
 	}
 
-	byteGroups := make([]ByteGroup, len(input))
+	byteGroups := make([]byteGroup, len(input))
 	errorCh := make(chan error, len(input))
 	wg := &sync.WaitGroup{}
 	wg.Add(len(input))
@@ -177,13 +177,13 @@ func TranscodeConcurrent(
 func bytesRelay(
 	index int,
 	input []byte,
-	bytes []ByteGroup,
-	key Key,
-	encoder func(byte, Key) ([]byte, error),
+	bytes []byteGroup,
+	key encodingKey,
+	encoder func(byte, encodingKey) ([]byte, error),
 	errorCh chan error,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
-	byteGroup := ByteGroup{
+	byteGroup := byteGroup{
 		bytes: make([]byte, 0),
 	}
 	msg, err := encoder(input[index], key)
@@ -197,13 +197,13 @@ func bytesRelay(
 	bytes[index] = byteGroup
 }
 
-func Transdecode(
+func decode(
 	input []byte,
-	key Key,
+	key encodingKey,
 	groups int,
-	decodeFunc func(Key, DecodeGroup) (byte, error),
+	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output []byte, err error) {
-	err = CheckTranscoder(key.GetKeyType(), &input)
+	err = CheckEncoder(key.GetKeyType(), &input)
 	if err != nil {
 		return nil, err
 	}
@@ -216,11 +216,11 @@ func Transdecode(
 	return decoded, err
 }
 
-func TransdecodeStream(
+func decodeStream(
 	input io.Reader,
-	key Key,
+	key encodingKey,
 	groups int,
-	decodeFunc func(Key, DecodeGroup) (byte, error),
+	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output io.Reader, err error) {
 	chars := key.GetDictionaryChars()
 	groupsFound := 0
@@ -228,13 +228,13 @@ func TransdecodeStream(
 	reader, writer := io.Pipe()
 	go func() {
 		for {
-			b, err := readTranscodedStream(
+			b, err := readEncodedStream(
 				input, writer, buffer, key, groups, decodeFunc)
 			if err != nil {
 				writer.CloseWithError(err)
 				return
 			}
-			if chars.CheckIn(b) {
+			if chars.checkIn(b) {
 				if groupsFound == groups {
 					err = writeDecodeBuffer(
 						decodeFunc, buffer, groups, key, writer)
@@ -254,11 +254,11 @@ func TransdecodeStream(
 	return reader, nil
 }
 
-func transdecodeStreamParted(
+func decodePartedStream(
 	input io.Reader,
-	key Key,
+	key encodingKey,
 	groups int,
-	decodeFunc func(Key, DecodeGroup) (byte, error),
+	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 	writer *io.PipeWriter,
 ) {
 	defer writer.Close()
@@ -309,26 +309,26 @@ func scanTdcSplit(data []byte, atEOF bool) (advance int, token []byte, err error
 	return 0, nil, nil
 }
 
-func TransdecodeStreamPartial(
+func decodePartialStream(
 	input io.Reader,
-	key Key,
+	key encodingKey,
 	groups int,
-	decodeFunc func(Key, DecodeGroup) (byte, error),
+	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output io.Reader, err error) {
 	reader, writer := io.Pipe()
 
-	go transdecodeStreamParted(input, key, groups, decodeFunc, writer)
+	go decodePartedStream(input, key, groups, decodeFunc, writer)
 
 	return reader, nil
 }
 
-func readTranscodedStream(
+func readEncodedStream(
 	input io.Reader,
 	writer *io.PipeWriter,
 	buffer []byte,
-	key Key,
+	key encodingKey,
 	groups int,
-	decodeFunc func(Key, DecodeGroup) (byte, error),
+	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (byte, error) {
 	b := make([]byte, 1)
 	_, err := input.Read(b)
@@ -348,10 +348,10 @@ func readTranscodedStream(
 }
 
 func writeDecodeBuffer(
-	decodeFunc func(Key, DecodeGroup) (byte, error),
+	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 	buffer []byte,
 	groups int,
-	key Key,
+	key encodingKey,
 	writer io.Writer,
 ) error {
 	decodeGroups, err := findDecodeGroups(buffer, key.GetDictionaryChars(), groups)
@@ -371,14 +371,14 @@ func writeDecodeBuffer(
 
 func findDecodeGroups(
 	input []byte,
-	characters DictionaryChars,
+	characters dictionaryChars,
 	numGroups int,
-) (decodeGroups []DecodeGroup, err error) {
-	if !characters.CheckIn(input[0]) {
+) (decodeGroups []decodeGroup, err error) {
+	if !characters.checkIn(input[0]) {
 		return decodeGroups, errors.New(
 			"no decode characters found")
 	}
-	decode := DecodeGroup{
+	decode := decodeGroup{
 		kind:  []uint8{},
 		place: []string{},
 	}
@@ -386,14 +386,14 @@ func findDecodeGroups(
 	numberAdded := 0
 
 	for i := range input {
-		if characters.CheckIn(input[i]) {
+		if characters.checkIn(input[i]) {
 			if len(buffer) > 0 {
 				decode.place = append(decode.place, string(buffer))
 				buffer = make([]uint8, 0)
 				if numberAdded == numGroups {
 					numberAdded = 0
 					decodeGroups = append(decodeGroups, decode)
-					decode = DecodeGroup{
+					decode = decodeGroup{
 						kind:  []uint8{},
 						place: []string{},
 					}
@@ -415,9 +415,9 @@ func findDecodeGroups(
 }
 
 func decodeBytes(
-	key Key,
-	decodeGroups []DecodeGroup,
-	decodeFunc func(Key, DecodeGroup) (byte, error),
+	key encodingKey,
+	decodeGroups []decodeGroup,
+	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) ([]byte, error) {
 	returnBytes := make([]byte, 0)
 	for _, dec := range decodeGroups {

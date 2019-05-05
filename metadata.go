@@ -10,15 +10,15 @@ import (
 	"runtime"
 )
 
-type TranscoderInfo struct {
+type EncoderInfo struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 }
 
-var TranscodersList []TranscoderInfo
+var EncodersList []EncoderInfo
 
 func init() {
-	TranscodersList = make([]TranscoderInfo, 0)
+	EncodersList = make([]EncoderInfo, 0)
 
 	_, runFile, _, _ := runtime.Caller(0)
 	file, err := os.Open(path.Dir(runFile) + "/versions.json")
@@ -26,29 +26,29 @@ func init() {
 		panic(err)
 	}
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&TranscodersList)
+	err = decoder.Decode(&EncodersList)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func GetTranscoderMeta(name string) (string, error) {
-	for i := range TranscodersList {
-		if TranscodersList[i].Name == name {
+func GetEncoderMeta(name string) (string, error) {
+	for i := range EncodersList {
+		if EncodersList[i].Name == name {
 			return fmt.Sprintf(
 				"[dcplt-%s-%s]",
-				TranscodersList[i].Name,
-				TranscodersList[i].Version,
+				EncodersList[i].Name,
+				EncodersList[i].Version,
 			), nil
 		}
 	}
-	return "", errors.New("invalid transcoder metadata")
+	return "", errors.New("invalid Encoder metadata")
 }
 
-func CheckTranscoder(
-	transcoderType TranscoderType,
+func CheckEncoder(
+	EncoderType encoderType,
 	message *[]byte) error {
-	meta, err := GetTranscoderMeta(string(transcoderType))
+	meta, err := GetEncoderMeta(string(EncoderType))
 	if err != nil {
 		return err
 	}
@@ -57,11 +57,11 @@ func CheckTranscoder(
 		*message = (*message)[metaSize:]
 		return nil
 	}
-	return errors.New("transcoder version does not match")
+	return errors.New("Encoder version does not match")
 }
 
-func WriteVersion(transcoderType TranscoderType) ([]byte, error) {
-	meta, err := GetTranscoderMeta(string(transcoderType))
+func WriteVersion(EncoderType encoderType) ([]byte, error) {
+	meta, err := GetEncoderMeta(string(EncoderType))
 	if err != nil {
 		return nil, err
 	}

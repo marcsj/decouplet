@@ -20,21 +20,21 @@ func Test_AESExample(t *testing.T) {
 		t.Error(err)
 	}
 	log.Println("Encrypted message:", string(encryptedBytes))
-	transcodeKey := []byte("This is an example key!@#$%^&*()1234567890")
-	output, err := decouplet.TranscodeBytes(encryptedBytes, transcodeKey)
+	encodeKey := []byte("This is an example key!@#$%^&*()1234567890")
+	output, err := decouplet.EncodeBytes(encryptedBytes, encodeKey)
 	if err != nil {
 		t.Error(err)
 	}
-	log.Println("Transcoded message:", string(output))
-	transdecoded, err := decouplet.TransdecodeBytes(output, transcodeKey)
+	log.Println("Encoded message:", string(output))
+	decoded, err := decouplet.DecodeBytes(output, encodeKey)
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(transdecoded, encryptedBytes) {
-		t.Log("Transdecoded bytes do not equal encrypted bytes")
+	if !bytes.Equal(decoded, encryptedBytes) {
+		t.Log("decoded bytes do not equal encrypted bytes")
 		t.Fail()
 	}
-	decrypted, err := aesDecrypt(transdecoded, key, nonce)
+	decrypted, err := aesDecrypt(decoded, key, nonce)
 	if err != nil {
 		t.Error(err)
 	}

@@ -19,17 +19,17 @@ type imageKey struct {
 	image.Image
 }
 
-func (imageKey) GetKeyType() TranscoderType {
-	return TranscoderType("imgtc")
+func (imageKey) GetKeyType() encoderType {
+	return encoderType("imgec")
 }
 
-func (imageKey) GetDictionaryChars() DictionaryChars {
-	return DictionaryChars("rgbacmyk")
+func (imageKey) GetDictionaryChars() dictionaryChars {
+	return dictionaryChars("rgbacmyk")
 }
 
-func (imageKey) GetDictionary() Dictionary {
-	return Dictionary{
-		decoders: []Decoder{
+func (imageKey) GetDictionary() dictionary {
+	return dictionary{
+		decoders: []decodeRef{
 			{
 				character: 'r',
 				amount:    0,
@@ -66,7 +66,7 @@ func (imageKey) GetDictionary() Dictionary {
 	}
 }
 
-func dictionaryRGBACMYK(col color.Color, dict Dictionary) Dictionary {
+func dictionaryRGBACMYK(col color.Color, dict dictionary) dictionary {
 	r, g, b, a := col.RGBA()
 	c, m, y, k := color.RGBToCMYK(uint8(r), uint8(g), uint8(b))
 	for i := range dict.decoders {
@@ -92,50 +92,50 @@ func dictionaryRGBACMYK(col color.Color, dict Dictionary) Dictionary {
 	return dict
 }
 
-func TranscodeImage(input []byte, key image.Image) ([]byte, error) {
-	return Transcode(
+func EncodeImage(input []byte, key image.Image) ([]byte, error) {
+	return encode(
 		input, imageKey{key}, findPixelPattern)
 	return nil, nil
 }
 
-func TranscodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
-	return TranscodeStream(
+func EncodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
+	return encodeStream(
 		input, imageKey{key}, findPixelPattern)
 }
 
-func TranscodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) (io.Reader, error) {
-	return TranscodeStreamPartial(
+func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) (io.Reader, error) {
+	return encodePartialStream(
 		input, imageKey{key}, take, skip, findPixelPattern)
 }
 
-func TranscodeImageConcurrent(input []byte, key image.Image) ([]byte, error) {
-	return TranscodeConcurrent(
+func EncodeImageConcurrent(input []byte, key image.Image) ([]byte, error) {
+	return encodeConcurrent(
 		input, imageKey{key}, findPixelPattern)
 	return nil, nil
 }
 
-func TransdecodeImage(input []byte, key image.Image) ([]byte, error) {
-	return Transdecode(
+func DecodeImage(input []byte, key image.Image) ([]byte, error) {
+	return decode(
 		input, imageKey{key}, 2, getImgDefs)
 }
 
-func TransdecodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
-	return TransdecodeStream(
+func DecodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
+	return decodeStream(
 		input, imageKey{key}, 2, getImgDefs)
 }
 
-func TransdecodeImageStreamPartial(input io.Reader, key image.Image) (io.Reader, error) {
-	return TransdecodeStreamPartial(
+func DecodeImageStreamPartial(input io.Reader, key image.Image) (io.Reader, error) {
+	return decodePartialStream(
 		input, imageKey{key}, 2, getImgDefs)
 }
 
-func getImgDefs(key Key, group DecodeGroup) (byte, error) {
+func getImgDefs(key encodingKey, group decodeGroup) (byte, error) {
 	if len(group.place) < 2 {
 		return 0, errors.New("decode group missing locations")
 	}
 	img, ok := key.(imageKey)
 	if !ok {
-		return 0, errors.New("failed to cast Key")
+		return 0, errors.New("failed to cast encodingKey")
 	}
 	dict := key.GetDictionary()
 
@@ -176,10 +176,10 @@ func getImgDefs(key Key, group DecodeGroup) (byte, error) {
 	return change2 - change1, nil
 }
 
-func findPixelPattern(char byte, key Key) ([]byte, error) {
+func findPixelPattern(char byte, key encodingKey) ([]byte, error) {
 	img, ok := key.(imageKey)
 	if !ok {
-		return nil, errors.New("failed to cast Key")
+		return nil, errors.New("failed to cast encodingKey")
 	}
 	bounds := img.Bounds()
 	startX := rand.Intn(bounds.Max.X)
@@ -188,7 +188,7 @@ func findPixelPattern(char byte, key Key) ([]byte, error) {
 
 	pattern, err := findPixelPartner(
 		location{x: startX, y: startY}, char, firstColor, img, key.GetDictionary())
-	if err != nil && err.Error() == errorMatchNotFound {
+	if err != nil && err == errorMatchNotFound {
 		startX = rand.Intn(bounds.Max.X)
 		startY = rand.Intn(bounds.Max.Y)
 		firstColor = img.At(startX, startY)
@@ -210,7 +210,7 @@ func findPixelPartner(
 	difference byte,
 	currentColor color.Color,
 	img image.Image,
-	dict Dictionary) ([]byte, error) {
+	dict dictionary) ([]byte, error) {
 	bounds := img.Bounds()
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -227,14 +227,14 @@ func findPixelPartner(
 			}
 		}
 	}
-	return nil, errors.New(errorMatchNotFound)
+	return nil, errorMatchNotFound
 }
 
 func checkColorMatch(
 	diff byte,
 	current color.Color,
 	checked color.Color,
-	dict Dictionary) (bool, uint8, uint8) {
+	dict dictionary) (bool, uint8, uint8) {
 	currentColors := dictionaryRGBACMYK(current, dict)
 	checkedColors := dictionaryRGBACMYK(checked, dict)
 	for v := range currentColors.decoders {

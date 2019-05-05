@@ -20,17 +20,17 @@ type byteChecked struct {
 
 type keyBytes []byte
 
-func (keyBytes) GetKeyType() TranscoderType {
-	return TranscoderType("bytetc")
+func (keyBytes) GetKeyType() encoderType {
+	return encoderType("byteec")
 }
 
-func (keyBytes) GetDictionaryChars() DictionaryChars {
-	return DictionaryChars("abcdefghijk")
+func (keyBytes) GetDictionaryChars() dictionaryChars {
+	return dictionaryChars("abcdefghijk")
 }
 
-func (keyBytes) GetDictionary() Dictionary {
-	return Dictionary{
-		decoders: []Decoder{
+func (keyBytes) GetDictionary() dictionary {
+	return dictionary{
+		decoders: []decodeRef{
 			{
 				character: 'a',
 				amount:    0,
@@ -79,48 +79,48 @@ func (keyBytes) GetDictionary() Dictionary {
 	}
 }
 
-func TranscodeBytes(input []byte, key []byte) ([]byte, error) {
-	return Transcode(
+func EncodeBytes(input []byte, key []byte) ([]byte, error) {
+	return encode(
 		input, keyBytes(key), findBytePattern)
 }
 
-func TranscodeBytesConcurrent(input []byte, key []byte) ([]byte, error) {
-	return TranscodeConcurrent(
+func EncodeBytesConcurrent(input []byte, key []byte) ([]byte, error) {
+	return encodeConcurrent(
 		input, keyBytes(key), findBytePattern)
 }
 
-func TranscodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
-	return TranscodeStream(
+func EncodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
+	return encodeStream(
 		input, keyBytes(key), findBytePattern)
 }
 
-func TranscodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) (io.Reader, error) {
-	return TranscodeStreamPartial(
+func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) (io.Reader, error) {
+	return encodePartialStream(
 		input, keyBytes(key), take, skip, findBytePattern)
 }
 
-func TransdecodeBytes(input []byte, key []byte) ([]byte, error) {
-	return Transdecode(
+func DecodeBytes(input []byte, key []byte) ([]byte, error) {
+	return decode(
 		input, keyBytes(key), 2, getByteDefs)
 }
 
-func TransdecodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
-	return TransdecodeStream(
+func DecodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
+	return decodeStream(
 		input, keyBytes(key), 2, getByteDefs)
 }
 
-func TransdecodeBytesStreamPartial(input io.Reader, key []byte) (io.Reader, error) {
-	return TransdecodeStreamPartial(
+func DecodeByteStreamPartial(input io.Reader, key []byte) (io.Reader, error) {
+	return decodePartialStream(
 		input, keyBytes(key), 2, getByteDefs)
 }
 
-func getByteDefs(key Key, group DecodeGroup) (byte, error) {
+func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 	if len(group.place) < 2 {
 		return 0, errors.New("decode group missing locations")
 	}
 	bytes, ok := key.(keyBytes)
 	if !ok {
-		return 0, errors.New("failed to cast Key")
+		return 0, errors.New("failed to cast encodingKey")
 	}
 	dict := key.GetDictionary()
 
@@ -148,10 +148,10 @@ func getByteDefs(key Key, group DecodeGroup) (byte, error) {
 	return change2 - change1, nil
 }
 
-func findBytePattern(char byte, key Key) ([]byte, error) {
+func findBytePattern(char byte, key encodingKey) ([]byte, error) {
 	bytes, ok := key.(keyBytes)
 	if !ok {
-		return nil, errors.New("failed to cast Key")
+		return nil, errors.New("failed to cast encodingKey")
 	}
 	bounds := len(bytes)
 	startX := rand.Intn(bounds)
@@ -159,7 +159,7 @@ func findBytePattern(char byte, key Key) ([]byte, error) {
 
 	pattern, err := findBytePartner(
 		location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
-	if err != nil && err.Error() == errorMatchNotFound {
+	if err != nil && err == errorMatchNotFound {
 		startX = rand.Intn(bounds)
 		firstByte := bytes[startX]
 
@@ -180,7 +180,7 @@ func findBytePartner(
 	difference byte,
 	currentByte byte,
 	bytes []byte,
-	dict Dictionary) ([]byte, error) {
+	dict dictionary) ([]byte, error) {
 	boundary := len(bytes)
 	for x := 0; x < boundary; x++ {
 		checkedByte := bytes[x]
@@ -192,14 +192,14 @@ func findBytePartner(
 				string(secondType), x)), nil
 		}
 	}
-	return nil, errors.New(errorMatchNotFound)
+	return nil, errorMatchNotFound
 }
 
 func checkByteMatch(
 	diff byte,
 	current byte,
 	checked byte,
-	dict Dictionary) (bool, uint8, uint8) {
+	dict dictionary) (bool, uint8, uint8) {
 	for v := range dict.decoders {
 		for k := range dict.decoders {
 			if checked+dict.decoders[k].amount ==

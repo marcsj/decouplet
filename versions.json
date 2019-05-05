@@ -1,10 +1,10 @@
 [
   {
-    "name":     "imgtc",
+    "name":     "imgec",
     "version":  "0.2"
   },
   {
-    "name":     "bytetc",
+    "name":     "byteec",
     "version":  "0.2"
   }
 ]
