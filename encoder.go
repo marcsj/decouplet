@@ -1,6 +1,7 @@
 package decouplet
 
 import (
+	"bufio"
 	"io"
 	"sync"
 )
@@ -57,18 +58,13 @@ func encodeStream(
 		writer *io.PipeWriter,
 		encoder func(byte, encodingKey) ([]byte, error),
 		key encodingKey) {
-		for {
-			b := make([]byte, 1)
-			_, err := input.Read(b)
-			if err != nil {
-				if err == io.EOF {
-					writer.Close()
-					return
-				}
-				writer.CloseWithError(err)
-				return
-			}
-			m, err := encoder(b[0], key)
+		defer writer.Close()
+
+		scanner := bufio.NewScanner(input)
+		scanner.Split(bufio.ScanBytes)
+
+		for scanner.Scan() {
+			m, err := encoder(scanner.Bytes()[0], key)
 			if err != nil {
 				writer.CloseWithError(err)
 			}
@@ -76,6 +72,10 @@ func encodeStream(
 			if err != nil {
 				writer.CloseWithError(err)
 			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			writer.CloseWithError(err)
 		}
 	}(input, writer, encoder, key)
 	return reader, nil

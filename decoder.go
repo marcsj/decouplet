@@ -64,7 +64,7 @@ func decodeStream(
 	return reader, nil
 }
 
-func decodePartedStream(
+func scanDecodeStream(
 	input io.Reader,
 	key encodingKey,
 	groups int,
@@ -127,7 +127,7 @@ func decodePartialStream(
 ) (output io.Reader, err error) {
 	reader, writer := io.Pipe()
 
-	go decodePartedStream(input, key, groups, decodeFunc, writer)
+	go scanDecodeStream(input, key, groups, decodeFunc, writer)
 
 	return reader, nil
 }
