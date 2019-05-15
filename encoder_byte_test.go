@@ -89,10 +89,7 @@ func TestEncodeBytesConcurrent(t *testing.T) {
 	key := []byte("tEst Key3#$!@&*()[]:;")
 	msg := []byte("Test this message and see it stream")
 	input := bytes.NewReader(msg)
-	reader, err := EncodeBytesStream(input, key)
-	if err != nil {
-		t.Error(err)
-	}
+	reader := EncodeBytesStream(input, key)
 	newReader, err := DecodeBytesStream(reader, key)
 	if err != nil {
 		t.Error(err)
@@ -111,10 +108,7 @@ func TestEncodeBytesConcurrentPartial(t *testing.T) {
 	take := 1
 	skip := 3
 	input := bytes.NewReader(msg)
-	reader, err := EncodeBytesStreamPartial(input, key, take, skip)
-	if err != nil {
-		t.Error(err)
-	}
+	reader := EncodeBytesStreamPartial(input, key, take, skip)
 	newReader, err := DecodeByteStreamPartial(reader, key)
 	if err != nil {
 		t.Error(err)

@@ -89,12 +89,12 @@ func EncodeBytesConcurrent(input []byte, key []byte) ([]byte, error) {
 		input, keyBytes(key), findBytePattern)
 }
 
-func EncodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
+func EncodeBytesStream(input io.Reader, key []byte) io.Reader {
 	return encodeStream(
 		input, keyBytes(key), findBytePattern)
 }
 
-func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) (io.Reader, error) {
+func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) io.Reader {
 	return encodePartialStream(
 		input, keyBytes(key), take, skip, findBytePattern)
 }
@@ -120,7 +120,7 @@ func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 	}
 	bytes, ok := key.(keyBytes)
 	if !ok {
-		return 0, errors.New("failed to cast encodingKey")
+		return 0, errors.New("failed to cast key")
 	}
 	dict := key.GetDictionary()
 
@@ -151,7 +151,7 @@ func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 func findBytePattern(char byte, key encodingKey) ([]byte, error) {
 	bytes, ok := key.(keyBytes)
 	if !ok {
-		return nil, errors.New("failed to cast encodingKey")
+		return nil, errors.New("failed to cast key")
 	}
 	bounds := len(bytes)
 	startX := rand.Intn(bounds)
@@ -160,13 +160,15 @@ func findBytePattern(char byte, key encodingKey) ([]byte, error) {
 	pattern, err := findBytePartner(
 		location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
 	if err != nil && err == errorMatchNotFound {
-		startX = rand.Intn(bounds)
-		firstByte := bytes[startX]
+		for i := 0; i < 16; i++ {
+			startX = rand.Intn(bounds)
+			firstByte := bytes[startX]
 
-		pattern, err = findBytePartner(
-			location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
-		if err != nil {
-			return nil, err
+			pattern, err = findBytePartner(
+				location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
+			if err == nil {
+				break
+			}
 		}
 	}
 	if err != nil {
@@ -181,8 +183,7 @@ func findBytePartner(
 	currentByte byte,
 	bytes []byte,
 	dict dictionary) ([]byte, error) {
-	boundary := len(bytes)
-	for x := 0; x < boundary; x++ {
+	for x := 0; x < len(bytes); x++ {
 		checkedByte := bytes[x]
 		if match, firstType, secondType := checkByteMatch(
 			difference, currentByte, checkedByte, dict); match {
