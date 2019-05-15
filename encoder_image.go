@@ -135,7 +135,7 @@ func getImgDefs(key encodingKey, group decodeGroup) (byte, error) {
 	}
 	img, ok := key.(imageKey)
 	if !ok {
-		return 0, errors.New("failed to cast encodingKey")
+		return 0, errors.New("failed to cast key")
 	}
 	dict := key.GetDictionary()
 
@@ -179,7 +179,7 @@ func getImgDefs(key encodingKey, group decodeGroup) (byte, error) {
 func findPixelPattern(char byte, key encodingKey) ([]byte, error) {
 	img, ok := key.(imageKey)
 	if !ok {
-		return nil, errors.New("failed to cast encodingKey")
+		return nil, errors.New("failed to cast key")
 	}
 	bounds := img.Bounds()
 	startX := rand.Intn(bounds.Max.X)
