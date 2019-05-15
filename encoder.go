@@ -3,6 +3,7 @@ package decouplet
 import (
 	"bufio"
 	"io"
+	"log"
 	"sync"
 )
 
@@ -51,14 +52,13 @@ func encodeStream(
 	input io.Reader,
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
-) (reader io.Reader, err error) {
+) io.Reader {
 	reader, writer := io.Pipe()
 	go func(
 		input io.Reader,
 		writer *io.PipeWriter,
 		encoder func(byte, encodingKey) ([]byte, error),
 		key encodingKey) {
-		defer writer.Close()
 
 		scanner := bufio.NewScanner(input)
 		scanner.Split(bufio.ScanBytes)
@@ -67,18 +67,23 @@ func encodeStream(
 			m, err := encoder(scanner.Bytes()[0], key)
 			if err != nil {
 				writer.CloseWithError(err)
+				return
 			}
 			_, err = writer.Write(m)
 			if err != nil {
 				writer.CloseWithError(err)
+				return
 			}
 		}
 
 		if err := scanner.Err(); err != nil {
+			log.Println(err)
 			writer.CloseWithError(err)
+			return
 		}
+		writer.Close()
 	}(input, writer, encoder, key)
-	return reader, nil
+	return reader
 }
 
 func encodePartialStream(
@@ -87,13 +92,13 @@ func encodePartialStream(
 	take int,
 	skip int,
 	encoder func(byte, encodingKey) ([]byte, error),
-) (reader io.Reader, err error) {
+) io.Reader {
 	reader, writer := io.Pipe()
 
 	go writeEncodeStreamPartial(
 		input, writer, key, take, skip, encoder)
 
-	return reader, nil
+	return reader
 }
 
 func writeEncodeStreamPartial(
@@ -112,12 +117,12 @@ func writeEncodeStreamPartial(
 			return
 		}
 		takeR := io.LimitReader(input, int64(take))
-		EncodedR, err := encodeStream(takeR, key, encoder)
+		encodedR := encodeStream(takeR, key, encoder)
 		if err != nil {
 			writer.CloseWithError(err)
 			return
 		}
-		_, err = io.Copy(writer, EncodedR)
+		_, err = io.Copy(writer, encodedR)
 		if err != nil {
 			writer.CloseWithError(err)
 			return
