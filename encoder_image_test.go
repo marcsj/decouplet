@@ -104,7 +104,7 @@ func TestEncodeImageConcurrent(t *testing.T) {
 	}
 	msg := []byte("Test this message and see it stream")
 	input := bytes.NewReader(msg)
-	reader, err := EncodeImageStream(input, image)
+	reader := EncodeImageStream(input, image)
 	if err != nil {
 		t.Error(err)
 	}
@@ -129,10 +129,7 @@ func TestEncodeImageConcurrentPartial(t *testing.T) {
 	skip := 3
 	msg := []byte("Test this message and see it stream, using partial encoding.")
 	input := bytes.NewReader(msg)
-	reader, err := EncodeImageStreamPartial(input, image, take, skip)
-	if err != nil {
-		t.Error(err)
-	}
+	reader := EncodeImageStreamPartial(input, image, take, skip)
 	newReader, err := DecodeImageStreamPartial(reader, image)
 	if err != nil {
 		t.Error(err)
