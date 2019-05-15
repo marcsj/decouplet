@@ -98,12 +98,12 @@ func EncodeImage(input []byte, key image.Image) ([]byte, error) {
 	return nil, nil
 }
 
-func EncodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
+func EncodeImageStream(input io.Reader, key image.Image) io.Reader {
 	return encodeStream(
 		input, imageKey{key}, findPixelPattern)
 }
 
-func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) (io.Reader, error) {
+func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) io.Reader {
 	return encodePartialStream(
 		input, imageKey{key}, take, skip, findPixelPattern)
 }
@@ -189,14 +189,16 @@ func findPixelPattern(char byte, key encodingKey) ([]byte, error) {
 	pattern, err := findPixelPartner(
 		location{x: startX, y: startY}, char, firstColor, img, key.GetDictionary())
 	if err != nil && err == errorMatchNotFound {
-		startX = rand.Intn(bounds.Max.X)
-		startY = rand.Intn(bounds.Max.Y)
-		firstColor = img.At(startX, startY)
+		for i := 0; i < 4; i++ {
+			startX = rand.Intn(bounds.Max.X)
+			startY = rand.Intn(bounds.Max.Y)
+			firstColor = img.At(startX, startY)
 
-		pattern, err = findPixelPartner(
-			location{x: startX, y: startY}, char, firstColor, img, key.GetDictionary())
-		if err != nil {
-			return nil, err
+			pattern, err = findPixelPartner(
+				location{x: startX, y: startY}, char, firstColor, img, key.GetDictionary())
+			if err == nil {
+				break
+			}
 		}
 	}
 	if err != nil {
