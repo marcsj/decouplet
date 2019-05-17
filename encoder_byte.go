@@ -20,6 +20,8 @@ type byteChecked struct {
 
 type keyBytes []byte
 
+const matchFindRetriesByte = 16
+
 func (keyBytes) GetType() encoderType {
 	return encoderType("byteec")
 }
@@ -114,6 +116,26 @@ func DecodeByteStreamPartial(input io.Reader, key []byte) (io.Reader, error) {
 		input, keyBytes(key), 2, getByteDefs)
 }
 
+func AnalyzeBytesKey(key []byte) (scale int) {
+	dict := keyBytes(key).GetDictionary()
+	found := 0.0
+	for i := 0; i < 255; i++ {
+		perByte := 0.0
+		for j := 0; j < matchFindRetriesByte; j++ {
+			randByte := key[rand.Intn(len(key))]
+			for k := 0; k < len(key); k++ {
+				success, _, _ := checkByteMatch(byte(i), randByte, key[k], dict)
+				if success {
+					perByte++
+				}
+				continue
+			}
+		}
+		found += perByte / float64(matchFindRetriesByte)
+	}
+	return int(float64(found) / 255.0)
+}
+
 func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 	if len(group.place) < 2 {
 		return 0, errors.New("decode group missing locations")
@@ -160,7 +182,7 @@ func findBytePattern(char byte, key encodingKey) ([]byte, error) {
 	pattern, err := findBytePartner(
 		location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
 	if err != nil && err == errorMatchNotFound {
-		for i := 0; i < 16; i++ {
+		for i := 0; i < matchFindRetriesByte; i++ {
 			startX = rand.Intn(bounds)
 			firstByte := bytes[startX]
 

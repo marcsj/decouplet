@@ -120,3 +120,27 @@ func TestEncodeBytesConcurrentPartial(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestAnalyzeBytesKey(t *testing.T) {
+	badKey := []byte("badkey")
+	scale := AnalyzeBytesKey(badKey)
+	t.Log("bad key analysis:", scale)
+	if scale > 10 {
+		t.Log("small, insufficient keys usually register under 10")
+		t.Fail()
+	}
+	goodKey := []byte("This is a Key$%@#$@^^%$&$%%^*{})([p[]Should _-!`~")
+	scale = AnalyzeBytesKey(goodKey)
+	t.Log("good key analysis:", scale)
+	if scale < 10 {
+		t.Log("good keys should be 10 or over")
+		t.Fail()
+	}
+	greatKey := []byte("GREAFgolanVMb elefwoejgitoiqwaz12353445789870-0=)(_#@$^#$&$%&$*$&$0238959_=2340+=12!@#$%^&*(()")
+	scale = AnalyzeBytesKey(greatKey)
+	if scale < 20 {
+		t.Log("great keys should be 20 or over(not really a hard number)")
+		t.Fail()
+	}
+	t.Log("great key analysis:", scale)
+}
