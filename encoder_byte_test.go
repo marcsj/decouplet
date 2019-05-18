@@ -109,7 +109,7 @@ func TestEncodeBytesConcurrentPartial(t *testing.T) {
 	skip := 3
 	input := bytes.NewReader(msg)
 	reader := EncodeBytesStreamPartial(input, key, take, skip)
-	newReader, err := DecodeByteStreamPartial(reader, key)
+	newReader, err := DecodeBytesStreamPartial(reader, key)
 	if err != nil {
 		t.Error(err)
 	}
