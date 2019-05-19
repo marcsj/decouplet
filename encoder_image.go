@@ -19,6 +19,8 @@ type imageKey struct {
 	image.Image
 }
 
+const matchFindRetriesImage = 4
+
 func (imageKey) GetType() encoderType {
 	return encoderType("imgec")
 }
@@ -189,7 +191,7 @@ func findPixelPattern(char byte, key encodingKey) ([]byte, error) {
 	pattern, err := findPixelPartner(
 		location{x: startX, y: startY}, char, firstColor, img, key.GetDictionary())
 	if err != nil && err == errorMatchNotFound {
-		for i := 0; i < 4; i++ {
+		for i := 0; i < matchFindRetriesImage; i++ {
 			startX = rand.Intn(bounds.Max.X)
 			startY = rand.Intn(bounds.Max.Y)
 			firstColor = img.At(startX, startY)

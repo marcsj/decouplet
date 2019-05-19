@@ -18,17 +18,19 @@ type byteChecked struct {
 	amount uint8
 }
 
-type keyBytes []byte
+type bytesKey []byte
 
-func (keyBytes) GetType() encoderType {
+const matchFindRetriesByte = 16
+
+func (bytesKey) GetType() encoderType {
 	return encoderType("byteec")
 }
 
-func (keyBytes) GetDictionaryChars() dictionaryChars {
+func (bytesKey) GetDictionaryChars() dictionaryChars {
 	return dictionaryChars("abcdefghijk")
 }
 
-func (keyBytes) GetDictionary() dictionary {
+func (bytesKey) GetDictionary() dictionary {
 	return dictionary{
 		decoders: []decodeRef{
 			{
@@ -81,44 +83,64 @@ func (keyBytes) GetDictionary() dictionary {
 
 func EncodeBytes(input []byte, key []byte) ([]byte, error) {
 	return encode(
-		input, keyBytes(key), findBytePattern)
+		input, bytesKey(key), findBytePattern)
 }
 
 func EncodeBytesConcurrent(input []byte, key []byte) ([]byte, error) {
 	return encodeConcurrent(
-		input, keyBytes(key), findBytePattern)
+		input, bytesKey(key), findBytePattern)
 }
 
 func EncodeBytesStream(input io.Reader, key []byte) io.Reader {
 	return encodeStream(
-		input, keyBytes(key), findBytePattern)
+		input, bytesKey(key), findBytePattern)
 }
 
 func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) io.Reader {
 	return encodePartialStream(
-		input, keyBytes(key), take, skip, findBytePattern)
+		input, bytesKey(key), take, skip, findBytePattern)
 }
 
 func DecodeBytes(input []byte, key []byte) ([]byte, error) {
 	return decode(
-		input, keyBytes(key), 2, getByteDefs)
+		input, bytesKey(key), 2, getByteDefs)
 }
 
 func DecodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
 	return decodeStream(
-		input, keyBytes(key), 2, getByteDefs)
+		input, bytesKey(key), 2, getByteDefs)
 }
 
-func DecodeByteStreamPartial(input io.Reader, key []byte) (io.Reader, error) {
+func DecodeBytesStreamPartial(input io.Reader, key []byte) (io.Reader, error) {
 	return decodePartialStream(
-		input, keyBytes(key), 2, getByteDefs)
+		input, bytesKey(key), 2, getByteDefs)
+}
+
+func AnalyzeBytesKey(key []byte) (scale int) {
+	dict := bytesKey(key).GetDictionary()
+	found := 0.0
+	for i := 0; i < 255; i++ {
+		perByte := 0.0
+		for j := 0; j < matchFindRetriesByte; j++ {
+			randByte := key[rand.Intn(len(key))]
+			for k := 0; k < len(key); k++ {
+				success, _, _ := checkByteMatch(byte(i), randByte, key[k], dict)
+				if success {
+					perByte++
+				}
+				continue
+			}
+		}
+		found += perByte / float64(matchFindRetriesByte)
+	}
+	return int(float64(found) / 255.0)
 }
 
 func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 	if len(group.place) < 2 {
 		return 0, errors.New("decode group missing locations")
 	}
-	bytes, ok := key.(keyBytes)
+	bytes, ok := key.(bytesKey)
 	if !ok {
 		return 0, errors.New("failed to cast key")
 	}
@@ -149,7 +171,7 @@ func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 }
 
 func findBytePattern(char byte, key encodingKey) ([]byte, error) {
-	bytes, ok := key.(keyBytes)
+	bytes, ok := key.(bytesKey)
 	if !ok {
 		return nil, errors.New("failed to cast key")
 	}
@@ -160,7 +182,7 @@ func findBytePattern(char byte, key encodingKey) ([]byte, error) {
 	pattern, err := findBytePartner(
 		location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
 	if err != nil && err == errorMatchNotFound {
-		for i := 0; i < 16; i++ {
+		for i := 0; i < matchFindRetriesByte; i++ {
 			startX = rand.Intn(bounds)
 			firstByte := bytes[startX]
 
