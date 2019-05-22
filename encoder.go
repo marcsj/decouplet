@@ -52,7 +52,7 @@ func encodeStream(
 	input io.Reader,
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
-) io.Reader {
+) *io.PipeReader {
 	reader, writer := io.Pipe()
 	go func(
 		input io.Reader,
@@ -92,7 +92,7 @@ func encodePartialStream(
 	take int,
 	skip int,
 	encoder func(byte, encodingKey) ([]byte, error),
-) io.Reader {
+) *io.PipeReader {
 	reader, writer := io.Pipe()
 
 	go writeEncodeStreamPartial(

@@ -136,7 +136,8 @@ func TestAnalyzeBytesKey(t *testing.T) {
 		t.Log("good keys should be 10 or over")
 		t.Fail()
 	}
-	greatKey := []byte("GREAFgolanVMb elefwoejgitoiqwaz12353445789870-0=)(_#@$^#$&$%&$*$&$0238959_=2340+=12!@#$%^&*(()")
+	greatKey := []byte(
+		"GREAFgolanVMb elefwoejgitoiqwaz12353445789870-0=)(_#@$^#$&$%&$*$&$0238959_=2340+=12!@#$%^&*(()")
 	scale = AnalyzeBytesKey(greatKey)
 	if scale < 20 {
 		t.Log("great keys should be 20 or over(not really a hard number)")
