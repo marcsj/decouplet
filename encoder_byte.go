@@ -91,12 +91,12 @@ func EncodeBytesConcurrent(input []byte, key []byte) ([]byte, error) {
 		input, bytesKey(key), findBytePattern)
 }
 
-func EncodeBytesStream(input io.Reader, key []byte) io.Reader {
+func EncodeBytesStream(input io.Reader, key []byte) *io.PipeReader {
 	return encodeStream(
 		input, bytesKey(key), findBytePattern)
 }
 
-func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) io.Reader {
+func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) *io.PipeReader {
 	return encodePartialStream(
 		input, bytesKey(key), take, skip, findBytePattern)
 }
@@ -106,12 +106,12 @@ func DecodeBytes(input []byte, key []byte) ([]byte, error) {
 		input, bytesKey(key), 2, getByteDefs)
 }
 
-func DecodeBytesStream(input io.Reader, key []byte) (io.Reader, error) {
+func DecodeBytesStream(input io.Reader, key []byte) (*io.PipeReader, error) {
 	return decodeStream(
 		input, bytesKey(key), 2, getByteDefs)
 }
 
-func DecodeBytesStreamPartial(input io.Reader, key []byte) (io.Reader, error) {
+func DecodeBytesStreamPartial(input io.Reader, key []byte) (*io.PipeReader, error) {
 	return decodePartialStream(
 		input, bytesKey(key), 2, getByteDefs)
 }

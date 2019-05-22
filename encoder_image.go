@@ -100,12 +100,12 @@ func EncodeImage(input []byte, key image.Image) ([]byte, error) {
 	return nil, nil
 }
 
-func EncodeImageStream(input io.Reader, key image.Image) io.Reader {
+func EncodeImageStream(input io.Reader, key image.Image) *io.PipeReader {
 	return encodeStream(
 		input, imageKey{key}, findPixelPattern)
 }
 
-func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) io.Reader {
+func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) *io.PipeReader {
 	return encodePartialStream(
 		input, imageKey{key}, take, skip, findPixelPattern)
 }
@@ -121,12 +121,12 @@ func DecodeImage(input []byte, key image.Image) ([]byte, error) {
 		input, imageKey{key}, 2, getImgDefs)
 }
 
-func DecodeImageStream(input io.Reader, key image.Image) (io.Reader, error) {
+func DecodeImageStream(input io.Reader, key image.Image) (*io.PipeReader, error) {
 	return decodeStream(
 		input, imageKey{key}, 2, getImgDefs)
 }
 
-func DecodeImageStreamPartial(input io.Reader, key image.Image) (io.Reader, error) {
+func DecodeImageStreamPartial(input io.Reader, key image.Image) (*io.PipeReader, error) {
 	return decodePartialStream(
 		input, imageKey{key}, 2, getImgDefs)
 }

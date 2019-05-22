@@ -31,12 +31,14 @@ func decodeStream(
 	key encodingKey,
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
-) (output io.Reader, err error) {
+) (output *io.PipeReader, err error) {
 	chars := key.GetDictionaryChars()
 	groupsFound := 0
 	buffer := make([]byte, 0)
 	reader, writer := io.Pipe()
+
 	go func() {
+		defer writer.Close()
 		for {
 			b, err := readEncodedStream(
 				input, writer, buffer, key, groups, decodeFunc)
@@ -124,7 +126,7 @@ func decodePartialStream(
 	key encodingKey,
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
-) (output io.Reader, err error) {
+) (output *io.PipeReader, err error) {
 	reader, writer := io.Pipe()
 
 	go scanDecodeStream(input, key, groups, decodeFunc, writer)
