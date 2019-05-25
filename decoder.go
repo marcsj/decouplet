@@ -32,38 +32,48 @@ func decodeStream(
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output *io.PipeReader, err error) {
-	chars := key.GetDictionaryChars()
-	groupsFound := 0
-	buffer := make([]byte, 0)
 	reader, writer := io.Pipe()
 
 	go func() {
+		chars := key.GetDictionaryChars()
 		defer writer.Close()
-		for {
-			b, err := readEncodedStream(
-				input, writer, buffer, key, groups, decodeFunc)
+
+		charSplit := splitInfo{chars: chars, groups: groups}
+		scanner := bufio.NewScanner(input)
+		scanner.Split(charSplit.scanDecodeSplit)
+
+		for scanner.Scan() {
+			err := writeDecodeBuffer(decodeFunc, scanner.Bytes(), groups, key, writer)
 			if err != nil {
 				writer.CloseWithError(err)
-				return
 			}
-			if chars.checkIn(b) {
-				if groupsFound == groups {
-					err = writeDecodeBuffer(
-						decodeFunc, buffer, groups, key, writer)
-					if err != nil {
-						writer.CloseWithError(err)
-						return
-					}
-					buffer = make([]byte, 0)
-					groupsFound = 0
-				}
-				groupsFound++
-			}
-			buffer = append(buffer, b)
+		}
+
+		if err := scanner.Err(); err != nil {
+			writer.CloseWithError(err)
 		}
 	}()
 
 	return reader, nil
+}
+
+func (t splitInfo) scanDecodeSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	charsFound := 0
+	for i := range data {
+		if t.chars.checkIn(data[i]) {
+			charsFound++
+			if charsFound == t.groups+1 {
+				return i, data[:i], nil
+			}
+		}
+	}
+	if atEOF {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
 }
 
 func scanDecodeStream(
@@ -76,7 +86,7 @@ func scanDecodeStream(
 	defer writer.Close()
 
 	scanner := bufio.NewScanner(input)
-	scanner.Split(scanDecodeSplit)
+	scanner.Split(scanPartialSplit)
 
 	for scanner.Scan() {
 		splitBytes := bytes.SplitAfter(scanner.Bytes(), partialStartBytes)
@@ -108,7 +118,7 @@ func scanDecodeStream(
 	}
 }
 
-func scanDecodeSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func scanPartialSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
@@ -132,31 +142,6 @@ func decodePartialStream(
 	go scanDecodeStream(input, key, groups, decodeFunc, writer)
 
 	return reader, nil
-}
-
-func readEncodedStream(
-	input io.Reader,
-	writer *io.PipeWriter,
-	buffer []byte,
-	key encodingKey,
-	groups int,
-	decodeFunc func(encodingKey, decodeGroup) (byte, error),
-) (byte, error) {
-	b := make([]byte, 1)
-	_, err := input.Read(b)
-	if err != nil {
-		if err == io.EOF {
-			err = writeDecodeBuffer(
-				decodeFunc, buffer, groups, key, writer)
-			if err != nil {
-				return b[0], err
-			}
-			writer.Close()
-		} else {
-			return b[0], err
-		}
-	}
-	return b[0], nil
 }
 
 func writeDecodeBuffer(

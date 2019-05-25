@@ -1,6 +1,8 @@
 package decouplet
 
-import "errors"
+import (
+	"errors"
+)
 
 var errorMatchNotFound = errors.New("match not found")
 
@@ -30,6 +32,11 @@ type dictionary struct {
 type decodeRef struct {
 	character uint8
 	amount    uint8
+}
+
+type splitInfo struct {
+	chars  dictionaryChars
+	groups int
 }
 
 type location struct {

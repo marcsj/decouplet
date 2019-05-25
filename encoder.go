@@ -3,7 +3,6 @@ package decouplet
 import (
 	"bufio"
 	"io"
-	"log"
 	"sync"
 )
 
@@ -77,7 +76,6 @@ func encodeStream(
 		}
 
 		if err := scanner.Err(); err != nil {
-			log.Println(err)
 			writer.CloseWithError(err)
 			return
 		}
