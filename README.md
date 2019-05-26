@@ -5,6 +5,8 @@ This library takes bytes, looks at a key and takes deltas,
 and outputs a message as measurements of that key- 
 effectively decoupling any meaning from a message without a key.
 
+[![GoDoc](https://godoc.org/github.com/marcsj/decouplet?status.svg)](https://godoc.org/github.com/marcsj/decouplet)
+
 ### Encoder Types
 
 Type | Key | Delta
