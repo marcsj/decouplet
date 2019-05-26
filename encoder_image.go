@@ -94,32 +94,39 @@ func dictionaryRGBACMYK(col color.Color, dict dictionary) dictionary {
 	return dict
 }
 
+// EncodeImage encodes a slice of bytes against an image key.
 func EncodeImage(input []byte, key image.Image) ([]byte, error) {
 	return encode(
 		input, imageKey{key}, findPixelPattern)
 	return nil, nil
 }
 
+// EncodeImageStream encodes a stream of bytes against an image key.
 func EncodeImageStream(input io.Reader, key image.Image) *io.PipeReader {
 	return encodeStream(
 		input, imageKey{key}, findPixelPattern)
 }
 
+// EncodeImageStreamPartial encodes a byte stream partially against an image key.
+// Arguments take and skip are used to determine how many bytes to take, and skip along a stream.
 func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) *io.PipeReader {
 	return encodePartialStream(
 		input, imageKey{key}, take, skip, findPixelPattern)
 }
 
+// DecodeImage encodes a slice of bytes against an image key.
 func DecodeImage(input []byte, key image.Image) ([]byte, error) {
 	return decode(
 		input, imageKey{key}, 2, getImgDefs)
 }
 
+// DecodeImageStream decodes a stream of bytes against an image key.
 func DecodeImageStream(input io.Reader, key image.Image) (*io.PipeReader, error) {
 	return decodeStream(
 		input, imageKey{key}, 2, getImgDefs)
 }
 
+// DecodeBytesStreamPartial decodes a byte stream with delimiters against an image key.
 func DecodeImageStreamPartial(input io.Reader, key image.Image) (*io.PipeReader, error) {
 	return decodePartialStream(
 		input, imageKey{key}, 2, getImgDefs)
