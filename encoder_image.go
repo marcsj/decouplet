@@ -126,7 +126,7 @@ func DecodeImageStream(input io.Reader, key image.Image) (*io.PipeReader, error)
 		input, imageKey{key}, 2, getImgDefs)
 }
 
-// DecodeBytesStreamPartial decodes a byte stream with delimiters against an image key.
+// DecodeImageStreamPartial decodes a byte stream with delimiters against an image key.
 func DecodeImageStreamPartial(input io.Reader, key image.Image) (*io.PipeReader, error) {
 	return decodePartialStream(
 		input, imageKey{key}, 2, getImgDefs)
