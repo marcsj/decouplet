@@ -92,9 +92,9 @@ func scanDecodeStream(
 		splitBytes := bytes.SplitAfter(scanner.Bytes(), partialStartBytes)
 		var skipped []byte
 		if len(splitBytes[0]) < len(partialStartBytes) {
-			skipped = splitBytes[0][0:len(splitBytes[0])]
+			skipped = splitBytes[0][:len(splitBytes[0])]
 		} else {
-			skipped = splitBytes[0][0 : len(splitBytes[0])-len(partialStartBytes)]
+			skipped = bytes.TrimRight(splitBytes[0], partialStart)
 		}
 		_, err := writer.Write(skipped)
 		if err != nil {
