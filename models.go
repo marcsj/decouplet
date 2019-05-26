@@ -5,6 +5,7 @@ import (
 )
 
 var errorMatchNotFound = errors.New("match not found")
+var errorDecodeNotFound = errors.New("valid decode character not found")
 
 const partialStart string = ";[&"
 const partialEnd string = "&];"

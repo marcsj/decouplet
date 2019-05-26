@@ -3,7 +3,6 @@ package decouplet
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io"
 )
 
@@ -164,8 +163,7 @@ func findDecodeGroups(
 	numGroups int,
 ) (decodeGroups []decodeGroup, err error) {
 	if !characters.checkIn(input[0]) {
-		return decodeGroups, errors.New(
-			"no decode characters found")
+		return decodeGroups, errorDecodeNotFound
 	}
 	decode := decodeGroup{
 		kind:  []uint8{},
