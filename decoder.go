@@ -90,26 +90,24 @@ func decodePartialStream(
 		scanner.Split(scanPartialSplit)
 
 		for scanner.Scan() {
-			splitBytes := bytes.SplitAfter(scanner.Bytes(), partialStartBytes)
-			var skipped []byte
-			if len(splitBytes[0]) < len(partialStartBytes) {
-				skipped = splitBytes[0][:len(splitBytes[0])]
-			} else {
-				skipped = bytes.TrimRight(splitBytes[0], partialStart)
+			scannedSplit := bytes.SplitAfter(scanner.Bytes(), partialStartBytes)
+			if len(scannedSplit) > 0 {
+				skipBytes := bytes.TrimRight(scannedSplit[0], partialStart)
+				skippedReader := bytes.NewReader(skipBytes)
+				_, err = io.Copy(writer, skippedReader)
+				if err != nil {
+					writer.CloseWithError(err)
+				}
 			}
-			_, err := writer.Write(skipped)
-			if err != nil {
-				writer.CloseWithError(err)
-			}
-			if len(splitBytes) > 1 {
-				if len(splitBytes[1]) > 0 {
-					readBytes := splitBytes[1]
-					err := writeDecodeBuffer(decodeFunc, readBytes, groups, key, writer)
-					if err != nil {
-						if err != io.EOF {
-							writer.CloseWithError(err)
-						}
-					}
+			if len(scannedSplit) > 1 {
+				encodedReader := bytes.NewReader(scannedSplit[1])
+				reader, err := decodeStream(encodedReader, key, groups, decodeFunc)
+				if err != nil {
+					writer.CloseWithError(err)
+				}
+				_, err = io.Copy(writer, reader)
+				if err != nil {
+					writer.CloseWithError(err)
 				}
 			}
 		}
@@ -127,7 +125,7 @@ func scanPartialSplit(data []byte, atEOF bool) (advance int, token []byte, err e
 		return 0, nil, nil
 	}
 	if i := bytes.Index(data, partialEndBytes); i >= 0 {
-		return i + len(partialStartBytes), data[0:i], nil
+		return i + len(partialStartBytes), data[:i], nil
 	}
 	if atEOF {
 		return len(data), data, nil
@@ -157,6 +155,7 @@ func writeDecodeBuffer(
 	return nil
 }
 
+//we need to rewrite this
 func findDecodeGroups(
 	input []byte,
 	characters dictionaryChars,
