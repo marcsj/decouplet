@@ -65,7 +65,7 @@ func TestByteMessage_Byte(t *testing.T) {
 			"^GEWg gwefwgwef _#$%@#$%L",
 	)
 	t.Log("Length of original:", len(fileBytes))
-	newMessage, err := EncodeBytesConcurrent(fileBytes, key)
+	newMessage, err := EncodeBytes(fileBytes, key)
 	if err != nil {
 		t.Error(err)
 	}

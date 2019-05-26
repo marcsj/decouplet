@@ -77,7 +77,7 @@ func TestImageMessage_Image(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	newMessage, err := EncodeImageConcurrent(fileBytes, image)
+	newMessage, err := EncodeImage(fileBytes, image)
 	if err != nil {
 		t.Error(err)
 	}

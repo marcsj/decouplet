@@ -110,12 +110,6 @@ func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip i
 		input, imageKey{key}, take, skip, findPixelPattern)
 }
 
-func EncodeImageConcurrent(input []byte, key image.Image) ([]byte, error) {
-	return encodeConcurrent(
-		input, imageKey{key}, findPixelPattern)
-	return nil, nil
-}
-
 func DecodeImage(input []byte, key image.Image) ([]byte, error) {
 	return decode(
 		input, imageKey{key}, 2, getImgDefs)

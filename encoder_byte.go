@@ -86,11 +86,6 @@ func EncodeBytes(input []byte, key []byte) ([]byte, error) {
 		input, bytesKey(key), findBytePattern)
 }
 
-func EncodeBytesConcurrent(input []byte, key []byte) ([]byte, error) {
-	return encodeConcurrent(
-		input, bytesKey(key), findBytePattern)
-}
-
 func EncodeBytesStream(input io.Reader, key []byte) *io.PipeReader {
 	return encodeStream(
 		input, bytesKey(key), findBytePattern)

@@ -2,8 +2,9 @@ package decouplet
 
 import (
 	"bufio"
+	"bytes"
 	"io"
-	"sync"
+	"io/ioutil"
 )
 
 type encodingKey interface {
@@ -16,35 +17,23 @@ func encode(
 	input []byte,
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
-) (output []byte, err error) {
-	bytes, err := WriteVersion(key.GetType())
+) ([]byte, error) {
+
+	b, err := WriteVersion(key.GetType())
 	if err != nil {
 		return nil, err
 	}
+	reader := encodeStream(bytes.NewReader(input), key, encoder)
 
-	byteGroups := make([]byteGroup, len(input))
-	errorCh := make(chan error, len(input))
-	wg := &sync.WaitGroup{}
-	wg.Add(len(input))
-
-	for i := range input {
-		bytesRelay(
-			i, input, byteGroups, key, encoder, errorCh, wg)
-	}
-
-	select {
-	case err := <-errorCh:
+	output, err := ioutil.ReadAll(reader)
+	if err != nil {
 		return nil, err
-	default:
-		break
 	}
-
-	for _, byteGroup := range byteGroups {
-		for _, b := range byteGroup.bytes {
-			bytes = append(bytes, b)
-		}
+	err = reader.Close()
+	if err != nil {
+		return nil, err
 	}
-	return bytes, nil
+	return append(b, output...), nil
 }
 
 func encodeStream(
@@ -126,63 +115,4 @@ func encodePartialStream(
 	}()
 
 	return reader
-}
-
-func encodeConcurrent(
-	input []byte,
-	key encodingKey,
-	encoder func(byte, encodingKey) ([]byte, error),
-) (output []byte, err error) {
-	bytes, err := WriteVersion(key.GetType())
-	if err != nil {
-		return nil, err
-	}
-
-	byteGroups := make([]byteGroup, len(input))
-	errorCh := make(chan error, len(input))
-	wg := &sync.WaitGroup{}
-	wg.Add(len(input))
-
-	for i := range input {
-		go bytesRelay(
-			i, input, byteGroups, key, encoder, errorCh, wg)
-	}
-	wg.Wait()
-
-	select {
-	case err := <-errorCh:
-		return nil, err
-	default:
-		break
-	}
-
-	for _, byteGroup := range byteGroups {
-		for _, b := range byteGroup.bytes {
-			bytes = append(bytes, b)
-		}
-	}
-	return bytes, nil
-}
-
-func bytesRelay(
-	index int,
-	input []byte,
-	bytes []byteGroup,
-	key encodingKey,
-	encoder func(byte, encodingKey) ([]byte, error),
-	errorCh chan error,
-	wg *sync.WaitGroup) {
-	defer wg.Done()
-	byteGroup := byteGroup{
-		bytes: make([]byte, 0),
-	}
-	msg, err := encoder(input[index], key)
-	if err != nil {
-		errorCh <- err
-		return
-	}
-	for _, b := range msg {
-		byteGroup.bytes = append(byteGroup.bytes, b)
-	}
-	bytes[index] = byteGroup
 }
