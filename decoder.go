@@ -76,46 +76,51 @@ func (t splitInfo) scanDecodeSplit(data []byte, atEOF bool) (advance int, token 
 	return 0, nil, nil
 }
 
-func scanDecodeStream(
+func decodePartialStream(
 	input io.Reader,
 	key encodingKey,
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
-	writer *io.PipeWriter,
-) {
-	defer writer.Close()
+) (output *io.PipeReader, err error) {
+	reader, writer := io.Pipe()
 
-	scanner := bufio.NewScanner(input)
-	scanner.Split(scanPartialSplit)
+	go func() {
+		defer writer.Close()
 
-	for scanner.Scan() {
-		splitBytes := bytes.SplitAfter(scanner.Bytes(), partialStartBytes)
-		var skipped []byte
-		if len(splitBytes[0]) < len(partialStartBytes) {
-			skipped = splitBytes[0][:len(splitBytes[0])]
-		} else {
-			skipped = bytes.TrimRight(splitBytes[0], partialStart)
-		}
-		_, err := writer.Write(skipped)
-		if err != nil {
-			writer.CloseWithError(err)
-		}
-		if len(splitBytes) > 1 {
-			if len(splitBytes[1]) > 0 {
-				readBytes := splitBytes[1]
-				err := writeDecodeBuffer(decodeFunc, readBytes, groups, key, writer)
-				if err != nil {
-					if err != io.EOF {
-						writer.CloseWithError(err)
+		scanner := bufio.NewScanner(input)
+		scanner.Split(scanPartialSplit)
+
+		for scanner.Scan() {
+			splitBytes := bytes.SplitAfter(scanner.Bytes(), partialStartBytes)
+			var skipped []byte
+			if len(splitBytes[0]) < len(partialStartBytes) {
+				skipped = splitBytes[0][:len(splitBytes[0])]
+			} else {
+				skipped = bytes.TrimRight(splitBytes[0], partialStart)
+			}
+			_, err := writer.Write(skipped)
+			if err != nil {
+				writer.CloseWithError(err)
+			}
+			if len(splitBytes) > 1 {
+				if len(splitBytes[1]) > 0 {
+					readBytes := splitBytes[1]
+					err := writeDecodeBuffer(decodeFunc, readBytes, groups, key, writer)
+					if err != nil {
+						if err != io.EOF {
+							writer.CloseWithError(err)
+						}
 					}
 				}
 			}
 		}
-	}
 
-	if err := scanner.Err(); err != nil {
-		writer.CloseWithError(err)
-	}
+		if err := scanner.Err(); err != nil {
+			writer.CloseWithError(err)
+		}
+	}()
+
+	return reader, nil
 }
 
 func scanPartialSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {
@@ -129,19 +134,6 @@ func scanPartialSplit(data []byte, atEOF bool) (advance int, token []byte, err e
 		return len(data), data, nil
 	}
 	return 0, nil, nil
-}
-
-func decodePartialStream(
-	input io.Reader,
-	key encodingKey,
-	groups int,
-	decodeFunc func(encodingKey, decodeGroup) (byte, error),
-) (output *io.PipeReader, err error) {
-	reader, writer := io.Pipe()
-
-	go scanDecodeStream(input, key, groups, decodeFunc, writer)
-
-	return reader, nil
 }
 
 func writeDecodeBuffer(
