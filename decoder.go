@@ -155,7 +155,6 @@ func writeDecodeBuffer(
 	return nil
 }
 
-//we need to rewrite this
 func findDecodeGroups(
 	input []byte,
 	characters dictionaryChars,
@@ -206,8 +205,8 @@ func decodeBytes(
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) ([]byte, error) {
 	returnBytes := make([]byte, 0)
-	for _, dec := range decodeGroups {
-		b, err := decodeFunc(key, dec)
+	for i := range decodeGroups {
+		b, err := decodeFunc(key, decodeGroups[i])
 		if err != nil {
 			return nil, err
 		}
