@@ -93,49 +93,39 @@ func encodePartialStream(
 ) *io.PipeReader {
 	reader, writer := io.Pipe()
 
-	go writeEncodeStreamPartial(
-		input, writer, key, take, skip, encoder)
+	go func() {
+		defer writer.Close()
+		for {
+			_, err := writer.Write(partialStartBytes)
+			if err != nil {
+				writer.CloseWithError(err)
+				return
+			}
+			takeR := io.LimitReader(input, int64(take))
+			encodedR := encodeStream(takeR, key, encoder)
+			if err != nil {
+				writer.CloseWithError(err)
+				return
+			}
+			_, err = io.Copy(writer, encodedR)
+			if err != nil {
+				writer.CloseWithError(err)
+				return
+			}
+			_, err = writer.Write(partialEndBytes)
+			if err != nil {
+				writer.CloseWithError(err)
+				return
+			}
+			_, err = io.CopyN(writer, input, int64(skip))
+			if err != nil {
+				writer.CloseWithError(err)
+				return
+			}
+		}
+	}()
 
 	return reader
-}
-
-func writeEncodeStreamPartial(
-	input io.Reader,
-	writer *io.PipeWriter,
-	key encodingKey,
-	take int,
-	skip int,
-	encoder func(byte, encodingKey) ([]byte, error),
-) {
-	defer writer.Close()
-	for {
-		_, err := writer.Write(partialStartBytes)
-		if err != nil {
-			writer.CloseWithError(err)
-			return
-		}
-		takeR := io.LimitReader(input, int64(take))
-		encodedR := encodeStream(takeR, key, encoder)
-		if err != nil {
-			writer.CloseWithError(err)
-			return
-		}
-		_, err = io.Copy(writer, encodedR)
-		if err != nil {
-			writer.CloseWithError(err)
-			return
-		}
-		_, err = writer.Write(partialEndBytes)
-		if err != nil {
-			writer.CloseWithError(err)
-			return
-		}
-		_, err = io.CopyN(writer, input, int64(skip))
-		if err != nil {
-			writer.CloseWithError(err)
-			return
-		}
-	}
 }
 
 func encodeConcurrent(
