@@ -81,41 +81,45 @@ func (bytesKey) GetDictionary() dictionary {
 	}
 }
 
+// EncodeBytes encodes a slice of bytes against a key which is a slice of bytes.
 func EncodeBytes(input []byte, key []byte) ([]byte, error) {
 	return encode(
 		input, bytesKey(key), findBytePattern)
 }
 
-func EncodeBytesConcurrent(input []byte, key []byte) ([]byte, error) {
-	return encodeConcurrent(
-		input, bytesKey(key), findBytePattern)
-}
-
+// EncodeBytesStream encodes a byte stream against a key which is a slice of bytes.
 func EncodeBytesStream(input io.Reader, key []byte) *io.PipeReader {
 	return encodeStream(
 		input, bytesKey(key), findBytePattern)
 }
 
+// EncodeBytesStreamPartial encodes a byte stream partially against a key which is a slice of bytes.
+// Arguments take and skip are used to determine how many bytes to take, and skip along a stream.
 func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) *io.PipeReader {
 	return encodePartialStream(
 		input, bytesKey(key), take, skip, findBytePattern)
 }
 
+// DecodeBytes decodes a slice of bytes against a key which is a slice of bytes.
 func DecodeBytes(input []byte, key []byte) ([]byte, error) {
 	return decode(
 		input, bytesKey(key), 2, getByteDefs)
 }
 
+// DecodeBytesStream decodes a byte stream against a key which is a slice of bytes.
 func DecodeBytesStream(input io.Reader, key []byte) (*io.PipeReader, error) {
 	return decodeStream(
 		input, bytesKey(key), 2, getByteDefs)
 }
 
+// DecodeBytesStreamPartial decodes a byte stream with delimiters
+// against a key which is a slice of bytes.
 func DecodeBytesStreamPartial(input io.Reader, key []byte) (*io.PipeReader, error) {
 	return decodePartialStream(
 		input, bytesKey(key), 2, getByteDefs)
 }
 
+// AnalyzeBytesKey takes a slice of bytes and analyzes its scale of usefulness at encoding.
 func AnalyzeBytesKey(key []byte) (scale int) {
 	dict := bytesKey(key).GetDictionary()
 	found := 0.0
