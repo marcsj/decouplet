@@ -2,6 +2,7 @@ package decouplet
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -145,4 +146,85 @@ func TestAnalyzeBytesKey(t *testing.T) {
 		t.Fail()
 	}
 	t.Log("great key analysis:", scale)
+}
+
+// Examples
+
+func ExampleEncodeBytes() {
+	message, err := EncodeBytes([]byte("Test"), []byte("tEst Key3#$T234"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("encoded:", string(message))
+}
+
+func ExampleEncodeBytesStream() {
+	key := []byte("tEst Key3#$!@&*()[]:;")
+	msg := []byte("Test this message and see it stream")
+	input := bytes.NewReader(msg)
+	reader := EncodeBytesStream(input, key)
+	message, err := ioutil.ReadAll(reader)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("output:", string(message))
+}
+
+func ExampleEncodeBytesStreamPartial() {
+	key := []byte("tEst Key3#$!@&*()[]:;")
+	msg := []byte("Test this message and see it stream")
+	take := 4
+	skip := 10
+	input := bytes.NewReader(msg)
+	reader := EncodeBytesStreamPartial(input, key, take, skip)
+	message, err := ioutil.ReadAll(reader)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("output:", string(message))
+}
+
+func ExampleDecodeBytes() {
+	message, err := DecodeBytes(
+		[]byte("[dcplt-byteec-0.2]a9c0e8j4j8d4j8c9"), []byte("tEst Key3#$"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("output:", string(message))
+}
+
+func ExampleDecodeBytesStream() {
+	key := []byte("tEst Key3#$!@&*()[]:;")
+	msg := []byte(
+		"c18j2a4j1a11i0a1j7a6j1k2c6a18k1b14i0g9k4a12j4e11" +
+			"i0d5j0k18h12a13i7a9h0k17c12a4j1b17f0k1e4k17d1k6d1" +
+			"c8h1k18h12g1j0a4j1b18g0a5j0a1j7e4b1f14j6j3f4k2i1k18c12d13j5j0b4")
+	input := bytes.NewReader(msg)
+	reader, err := DecodeBytesStream(input, key)
+	if err != nil {
+		fmt.Println(err)
+	}
+	message, err := ioutil.ReadAll(reader)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("output:", string(message))
+
+}
+
+func ExampleDecodeBytesStreamPartial() {
+	key := []byte("tEst Key3#$!@&*()[]:;")
+	msg := []byte(
+		";[&e19i0d5j0d16k4f10k4&]; this mess;[&a10j1j7a4i3k7c9a1&];" +
+			"and see it;[&c9a1c10i7a4i0k17f1&];eam")
+	input := bytes.NewReader(msg)
+	reader, err := DecodeBytesStreamPartial(input, key)
+	if err != nil {
+		fmt.Println(err)
+	}
+	message, err := ioutil.ReadAll(reader)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("output:", string(message))
 }
