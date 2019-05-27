@@ -21,8 +21,11 @@ type imageKey struct {
 
 const matchFindRetriesImage = 4
 
-func (imageKey) GetType() encoderType {
-	return encoderType("imgec")
+func (imageKey) GetVersion() EncoderInfo {
+	return EncoderInfo{
+		Name:    "imgec",
+		Version: "0.2",
+	}
 }
 
 func (imageKey) GetDictionaryChars() dictionaryChars {

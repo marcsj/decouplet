@@ -8,7 +8,7 @@ import (
 )
 
 type encodingKey interface {
-	GetType() encoderType
+	GetVersion() EncoderInfo
 	GetDictionaryChars() dictionaryChars
 	GetDictionary() dictionary
 }
@@ -18,8 +18,7 @@ func encode(
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
 ) ([]byte, error) {
-
-	b, err := WriteVersion(key.GetType())
+	b, err := key.GetVersion().WriteVersion()
 	if err != nil {
 		return nil, err
 	}
