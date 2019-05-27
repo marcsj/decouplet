@@ -12,7 +12,7 @@ func decode(
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output []byte, err error) {
-	err = CheckEncoder(key.GetType(), &input)
+	err = key.GetVersion().CheckEncoder(&input)
 	if err != nil {
 		return nil, err
 	}

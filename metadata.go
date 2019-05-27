@@ -2,12 +2,8 @@ package decouplet
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path"
-	"runtime"
 )
 
 type EncoderInfo struct {
@@ -17,51 +13,29 @@ type EncoderInfo struct {
 
 var EncodersList []EncoderInfo
 
-func init() {
-	EncodersList = make([]EncoderInfo, 0)
-
-	_, runFile, _, _ := runtime.Caller(0)
-	file, err := os.Open(path.Dir(runFile) + "/versions.json")
-	if err != nil {
-		panic(err)
-	}
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&EncodersList)
-	if err != nil {
-		panic(err)
-	}
+func (i EncoderInfo) GetEncoderString() (string, error) {
+	return fmt.Sprintf(
+		"[dcplt-%s-%s]",
+		i.Name,
+		i.Version,
+	), nil
 }
 
-func GetEncoderMeta(name string) (string, error) {
-	for i := range EncodersList {
-		if EncodersList[i].Name == name {
-			return fmt.Sprintf(
-				"[dcplt-%s-%s]",
-				EncodersList[i].Name,
-				EncodersList[i].Version,
-			), nil
-		}
-	}
-	return "", errors.New("invalid Encoder metadata")
-}
-
-func CheckEncoder(
-	EncoderType encoderType,
-	message *[]byte) error {
-	meta, err := GetEncoderMeta(string(EncoderType))
+func (i EncoderInfo) CheckEncoder(message *[]byte) error {
+	meta, err := i.GetEncoderString()
 	if err != nil {
 		return err
 	}
-	metaSize := len([]byte(meta))
-	if bytes.Equal((*message)[:metaSize], []byte(meta)) {
-		*message = (*message)[metaSize:]
+	metaBytes := []byte(meta)
+	if bytes.HasPrefix(*message, metaBytes) {
+		*message = (*message)[len(metaBytes):]
 		return nil
 	}
 	return errors.New("encoder version does not match")
 }
 
-func WriteVersion(EncoderType encoderType) ([]byte, error) {
-	meta, err := GetEncoderMeta(string(EncoderType))
+func (i EncoderInfo) WriteVersion() ([]byte, error) {
+	meta, err := i.GetEncoderString()
 	if err != nil {
 		return nil, err
 	}

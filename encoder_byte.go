@@ -22,8 +22,11 @@ type bytesKey []byte
 
 const matchFindRetriesByte = 16
 
-func (bytesKey) GetType() encoderType {
-	return encoderType("byteec")
+func (bytesKey) GetVersion() EncoderInfo {
+	return EncoderInfo{
+		Name:    "byteec",
+		Version: "0.2",
+	}
 }
 
 func (bytesKey) GetDictionaryChars() dictionaryChars {
