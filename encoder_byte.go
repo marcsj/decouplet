@@ -166,12 +166,20 @@ func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 	var change2 uint8
 	for _, g := range dict.decoders {
 		if g.character == group.kind[0] {
-			change1 = bytes[loc1] + g.amount
+			if len(bytes) >= loc1 {
+				change1 = bytes[loc1] + g.amount
+			} else {
+				return 0, errors.New("decode error")
+			}
 		}
 	}
 	for _, g := range dict.decoders {
 		if g.character == group.kind[1] {
-			change2 = bytes[loc2] + g.amount
+			if len(bytes) >= loc2 {
+				change2 = bytes[loc2] + g.amount
+			} else {
+				return 0, errors.New("decode error")
+			}
 		}
 	}
 	return change2 - change1, nil
