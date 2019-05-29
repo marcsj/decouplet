@@ -186,50 +186,65 @@ func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 }
 
 func findBytePattern(char byte, key encodingKey) ([]byte, error) {
-	bytes, ok := key.(bytesKey)
+	bytesKey, ok := key.(bytesKey)
 	if !ok {
 		return nil, errors.New("failed to cast key")
 	}
-	bounds := len(bytes)
-	startX := rand.Intn(bounds)
-	firstByte := bytes[startX]
+	pattern := make([]byte, 0)
+	var err error
 
-	pattern, err := findBytePartner(
-		location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
-	if err != nil && err == errorMatchNotFound {
-		for i := 0; i < matchFindRetriesByte; i++ {
-			startX = rand.Intn(bounds)
-			firstByte := bytes[startX]
-
-			pattern, err = findBytePartner(
-				location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
-			if err == nil {
-				break
-			}
+	for i := 0; i < matchFindRetriesByte; i++ {
+		pattern, err = getBytePattern(char, bytesKey)
+		if err == nil {
+			return pattern, nil
 		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	return pattern, nil
+
+	return nil, err
+}
+
+func getBytePattern(char byte, key bytesKey) ([]byte, error) {
+	bounds := len(key)
+	start1 := rand.Intn(bounds)
+	start2 := rand.Intn(bounds)
+	firstByte := key[start1]
+
+	return findBytePartner(
+		location{x: start1}, start2, char, byte(firstByte), key, key.GetDictionary())
+
 }
 
 func findBytePartner(
 	location location,
+	start int,
 	difference byte,
 	currentByte byte,
 	bytes []byte,
 	dict dictionary) ([]byte, error) {
-	for x := 0; x < len(bytes); x++ {
-		checkedByte := bytes[x]
-		if match, firstType, secondType := checkByteMatch(
-			difference, currentByte, checkedByte, dict); match {
-			return []byte(fmt.Sprintf(
-				"%s%v%s%v",
-				string(firstType), location.x,
-				string(secondType), x)), nil
+	if start > len(bytes)/2 {
+		for x := start; x >= 0; x-- {
+			checkedByte := bytes[x]
+			if match, firstType, secondType := checkByteMatch(
+				difference, currentByte, checkedByte, dict); match {
+				return []byte(fmt.Sprintf(
+					"%s%v%s%v",
+					string(firstType), location.x,
+					string(secondType), x)), nil
+			}
+		}
+	} else {
+		for x := start; x < len(bytes); x++ {
+			checkedByte := bytes[x]
+			if match, firstType, secondType := checkByteMatch(
+				difference, currentByte, checkedByte, dict); match {
+				return []byte(fmt.Sprintf(
+					"%s%v%s%v",
+					string(firstType), location.x,
+					string(secondType), x)), nil
+			}
 		}
 	}
+
 	return nil, errorMatchNotFound
 }
 
