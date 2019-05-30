@@ -226,19 +226,19 @@ func getBytePattern(char byte, key bytesKey) ([]byte, error) {
 		for x := startFinding; x >= 0; x-- {
 			pattern, err = findBytePartner(current, x, char, key, dictionary)
 			if err == nil {
-				break
+				return pattern, nil
 			}
 		}
 	} else {
 		for x := startFinding; x < bounds; x++ {
 			pattern, err = findBytePartner(current, x, char, key, dictionary)
 			if err == nil {
-				break
+				return pattern, nil
 			}
 		}
 	}
 
-	return pattern, err
+	return nil, err
 }
 
 func findBytePartner(
