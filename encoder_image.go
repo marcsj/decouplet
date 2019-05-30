@@ -20,12 +20,22 @@ type imageKey struct {
 }
 
 const matchFindRetriesImage = 4
+const imageKeySize = 300
+
+var errorImageKeyTooSmall = errors.New("key needs to be larger than 300x300")
 
 func (imageKey) GetVersion() EncoderInfo {
 	return EncoderInfo{
 		Name:    "imgec",
 		Version: "0.2",
 	}
+}
+
+func (k imageKey) CheckValid() (bool, error) {
+	if k.Image.Bounds().Max.X < imageKeySize || k.Image.Bounds().Max.Y < imageKeySize {
+		return false, errorImageKeyTooSmall
+	}
+	return true, nil
 }
 
 func (imageKey) GetDictionaryChars() dictionaryChars {
@@ -105,14 +115,14 @@ func EncodeImage(input []byte, key image.Image) ([]byte, error) {
 }
 
 // EncodeImageStream encodes a stream of bytes against an image key.
-func EncodeImageStream(input io.Reader, key image.Image) *io.PipeReader {
+func EncodeImageStream(input io.Reader, key image.Image) (*io.PipeReader, error) {
 	return encodeStream(
 		input, imageKey{key}, findPixelPattern)
 }
 
 // EncodeImageStreamPartial encodes a byte stream partially against an image key.
 // Arguments take and skip are used to determine how many bytes to take, and skip along a stream.
-func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) *io.PipeReader {
+func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) (*io.PipeReader, error) {
 	return encodePartialStream(
 		input, imageKey{key}, take, skip, findPixelPattern)
 }

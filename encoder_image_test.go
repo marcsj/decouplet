@@ -2,6 +2,7 @@ package decouplet
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -104,7 +105,7 @@ func TestEncodeImageConcurrent(t *testing.T) {
 	}
 	msg := []byte("Test this message and see it stream")
 	input := bytes.NewReader(msg)
-	reader := EncodeImageStream(input, image)
+	reader, err := EncodeImageStream(input, image)
 	if err != nil {
 		t.Error(err)
 	}
@@ -129,7 +130,10 @@ func TestEncodeImageConcurrentPartial(t *testing.T) {
 	skip := 3
 	msg := []byte("Test this message and see it stream, using partial encoding.")
 	input := bytes.NewReader(msg)
-	reader := EncodeImageStreamPartial(input, image, take, skip)
+	reader, err := EncodeImageStreamPartial(input, image, take, skip)
+	if err != nil {
+		fmt.Println(err)
+	}
 	newReader, err := DecodeImageStreamPartial(reader, image)
 	if err != nil {
 		t.Error(err)
