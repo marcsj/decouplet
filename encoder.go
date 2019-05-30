@@ -9,6 +9,7 @@ import (
 
 type encodingKey interface {
 	GetVersion() EncoderInfo
+	CheckValid() (bool, error)
 	GetDictionaryChars() dictionaryChars
 	GetDictionary() dictionary
 }
@@ -18,11 +19,18 @@ func encode(
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
 ) ([]byte, error) {
+	if valid, err := key.CheckValid(); !valid {
+		return nil, err
+	}
+
 	b, err := key.GetVersion().WriteVersion()
 	if err != nil {
 		return nil, err
 	}
-	reader := encodeStream(bytes.NewReader(input), key, encoder)
+	reader, err := encodeStream(bytes.NewReader(input), key, encoder)
+	if err != nil {
+		return nil, err
+	}
 
 	output, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -39,7 +47,10 @@ func encodeStream(
 	input io.Reader,
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
-) *io.PipeReader {
+) (*io.PipeReader, error) {
+	if valid, err := key.CheckValid(); !valid {
+		return nil, err
+	}
 	reader, writer := io.Pipe()
 	go func(
 		input io.Reader,
@@ -69,7 +80,8 @@ func encodeStream(
 		}
 		writer.Close()
 	}(input, writer, encoder, key)
-	return reader
+
+	return reader, nil
 }
 
 func encodePartialStream(
@@ -78,8 +90,11 @@ func encodePartialStream(
 	take int,
 	skip int,
 	encoder func(byte, encodingKey) ([]byte, error),
-) *io.PipeReader {
+) (*io.PipeReader, error) {
 	reader, writer := io.Pipe()
+	if valid, err := key.CheckValid(); !valid {
+		return nil, err
+	}
 
 	go func() {
 		defer writer.Close()
@@ -90,7 +105,7 @@ func encodePartialStream(
 				return
 			}
 			takeR := io.LimitReader(input, int64(take))
-			encodedR := encodeStream(takeR, key, encoder)
+			encodedR, err := encodeStream(takeR, key, encoder)
 			if err != nil {
 				writer.CloseWithError(err)
 				return
@@ -113,5 +128,5 @@ func encodePartialStream(
 		}
 	}()
 
-	return reader
+	return reader, nil
 }
