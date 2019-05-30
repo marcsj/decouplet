@@ -21,12 +21,22 @@ type byteChecked struct {
 type bytesKey []byte
 
 const matchFindRetriesByte = 16
+const minByteKeySize = 64
+
+var errorByteKeyTooShort = errors.New("key is smaller than minimum length of 64 bytes")
 
 func (bytesKey) GetVersion() EncoderInfo {
 	return EncoderInfo{
 		Name:    "byteec",
 		Version: "0.2",
 	}
+}
+
+func (k bytesKey) CheckValid() (bool, error) {
+	if len(k) < minByteKeySize {
+		return false, errorByteKeyTooShort
+	}
+	return true, nil
 }
 
 func (bytesKey) GetDictionaryChars() dictionaryChars {
@@ -91,14 +101,14 @@ func EncodeBytes(input []byte, key []byte) ([]byte, error) {
 }
 
 // EncodeBytesStream encodes a byte stream against a key which is a slice of bytes.
-func EncodeBytesStream(input io.Reader, key []byte) *io.PipeReader {
+func EncodeBytesStream(input io.Reader, key []byte) (*io.PipeReader, error) {
 	return encodeStream(
 		input, bytesKey(key), findBytePattern)
 }
 
 // EncodeBytesStreamPartial encodes a byte stream partially against a key which is a slice of bytes.
 // Arguments take and skip are used to determine how many bytes to take, and skip along a stream.
-func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) *io.PipeReader {
+func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) (*io.PipeReader, error) {
 	return encodePartialStream(
 		input, bytesKey(key), take, skip, findBytePattern)
 }
