@@ -2,6 +2,7 @@ package decouplet
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,7 +10,7 @@ import (
 )
 
 func TestEncodeBytes(t *testing.T) {
-	newMessage, err := EncodeBytes([]byte("Test"), []byte("tEst Key3#$T234"))
+	newMessage, err := EncodeBytes([]byte("Test"), []byte("tEst Key3#$T234Alklgn"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -18,7 +19,7 @@ func TestEncodeBytes(t *testing.T) {
 
 func TestDecoderBytes(t *testing.T) {
 	message, err := DecodeBytes(
-		[]byte("[dcplt-byteec-0.2]a9c0e8j4j8d4j8c9"), []byte("tEst Key3#$"))
+		[]byte("[dcplt-byteec-0.2]e12i16d17k11k17g11k12e4"), []byte("tEst Key3#$"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -29,13 +30,14 @@ func TestByteMessage(t *testing.T) {
 	originalMessage :=
 		"!!**_-+Test THIS bigger message with More Symbols" +
 			"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@"
+	key := []byte("Test encodingKey!@# $Aaaaaallgglglmefmogaloehkogpeloskoge ekgogjwogkl 2346923052306235023060923503289362305028602395026023950260235028602597235923")
 	newMessage, err := EncodeBytes(
-		[]byte(originalMessage), []byte("Test encodingKey!@# $"))
+		[]byte(originalMessage), key)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(string(newMessage))
-	message, err := DecodeBytes(newMessage, []byte("Test encodingKey!@# $"))
+	message, err := DecodeBytes(newMessage, key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -90,10 +92,13 @@ func TestEncodeBytesConcurrent(t *testing.T) {
 	key := []byte("tEst Key3#$!@&*()[]:;")
 	msg := []byte("Test this message and see it stream")
 	input := bytes.NewReader(msg)
-	reader := EncodeBytesStream(input, key)
+	reader, err := EncodeBytesStream(input, key)
+	if err != nil {
+		t.Fatal(err)
+	}
 	newReader, err := DecodeBytesStream(reader, key)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	b, err := ioutil.ReadAll(newReader)
 	t.Log(string(b))
@@ -109,7 +114,11 @@ func TestEncodeBytesConcurrentPartial(t *testing.T) {
 	take := 1
 	skip := 3
 	input := bytes.NewReader(msg)
-	reader := EncodeBytesStreamPartial(input, key, take, skip)
+	reader, err := EncodeBytesStreamPartial(input, key, take, skip)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
 	newReader, err := DecodeBytesStreamPartial(reader, key)
 	if err != nil {
 		t.Error(err)
@@ -162,7 +171,10 @@ func ExampleEncodeBytesStream() {
 	key := []byte("tEst Key3#$!@&*()[]:;")
 	msg := []byte("Test this message and see it stream")
 	input := bytes.NewReader(msg)
-	reader := EncodeBytesStream(input, key)
+	reader, err := EncodeBytesStream(input, key)
+	if err != nil {
+		fmt.Println(err)
+	}
 	message, err := ioutil.ReadAll(reader)
 	if err != nil {
 		fmt.Println(err)
@@ -176,7 +188,10 @@ func ExampleEncodeBytesStreamPartial() {
 	take := 4
 	skip := 10
 	input := bytes.NewReader(msg)
-	reader := EncodeBytesStreamPartial(input, key, take, skip)
+	reader, err := EncodeBytesStreamPartial(input, key, take, skip)
+	if err != nil {
+		fmt.Println(err)
+	}
 	message, err := ioutil.ReadAll(reader)
 	if err != nil {
 		fmt.Println(err)
@@ -227,4 +242,44 @@ func ExampleDecodeBytesStreamPartial() {
 		fmt.Println(err)
 	}
 	fmt.Println("output:", string(message))
+}
+
+func TestImageBytePPM(t *testing.T) {
+	file, err := os.Open("images/body.bin")
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	key := make([]byte, 256)
+	_, err = rand.Read(key)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	key2 := make([]byte, 256)
+	_, err = rand.Read(key2)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	reader, err := EncodeBytesStream(file, key)
+	if err != nil {
+		fmt.Println(err)
+	}
+	decoded, err := DecodeBytesStream(reader, key2)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	data, err := ioutil.ReadAll(decoded)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	err = ioutil.WriteFile("images/body.ecb.bin", data, 0644)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
 }

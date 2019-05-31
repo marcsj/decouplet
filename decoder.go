@@ -12,6 +12,10 @@ func decode(
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output []byte, err error) {
+	if valid, err := key.CheckValid(); !valid {
+		return nil, err
+	}
+
 	err = key.GetVersion().CheckEncoder(&input)
 	if err != nil {
 		return nil, err
@@ -31,6 +35,10 @@ func decodeStream(
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output *io.PipeReader, err error) {
+	if valid, err := key.CheckValid(); !valid {
+		return nil, err
+	}
+
 	reader, writer := io.Pipe()
 
 	go func() {
@@ -81,6 +89,10 @@ func decodePartialStream(
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output *io.PipeReader, err error) {
+	if valid, err := key.CheckValid(); !valid {
+		return nil, err
+	}
+
 	reader, writer := io.Pipe()
 
 	go func() {

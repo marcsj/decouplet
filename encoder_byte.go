@@ -21,12 +21,22 @@ type byteChecked struct {
 type bytesKey []byte
 
 const matchFindRetriesByte = 16
+const minByteKeySize = 64
+
+var errorByteKeyTooShort = errors.New("key is smaller than minimum length of 64 bytes")
 
 func (bytesKey) GetVersion() EncoderInfo {
 	return EncoderInfo{
 		Name:    "byteec",
 		Version: "0.2",
 	}
+}
+
+func (k bytesKey) CheckValid() (bool, error) {
+	if len(k) < minByteKeySize {
+		return false, errorByteKeyTooShort
+	}
+	return true, nil
 }
 
 func (bytesKey) GetDictionaryChars() dictionaryChars {
@@ -91,14 +101,14 @@ func EncodeBytes(input []byte, key []byte) ([]byte, error) {
 }
 
 // EncodeBytesStream encodes a byte stream against a key which is a slice of bytes.
-func EncodeBytesStream(input io.Reader, key []byte) *io.PipeReader {
+func EncodeBytesStream(input io.Reader, key []byte) (*io.PipeReader, error) {
 	return encodeStream(
 		input, bytesKey(key), findBytePattern)
 }
 
 // EncodeBytesStreamPartial encodes a byte stream partially against a key which is a slice of bytes.
 // Arguments take and skip are used to determine how many bytes to take, and skip along a stream.
-func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) *io.PipeReader {
+func EncodeBytesStreamPartial(input io.Reader, key []byte, take int, skip int) (*io.PipeReader, error) {
 	return encodePartialStream(
 		input, bytesKey(key), take, skip, findBytePattern)
 }
@@ -186,50 +196,65 @@ func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 }
 
 func findBytePattern(char byte, key encodingKey) ([]byte, error) {
-	bytes, ok := key.(bytesKey)
+	bytesKey, ok := key.(bytesKey)
 	if !ok {
-		return nil, errors.New("failed to cast key")
+		return nil, errorKeyCastFailed
 	}
-	bounds := len(bytes)
-	startX := rand.Intn(bounds)
-	firstByte := bytes[startX]
+	pattern := make([]byte, 0)
+	var err error
 
-	pattern, err := findBytePartner(
-		location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
-	if err != nil && err == errorMatchNotFound {
-		for i := 0; i < matchFindRetriesByte; i++ {
-			startX = rand.Intn(bounds)
-			firstByte := bytes[startX]
+	for i := 0; i < matchFindRetriesByte; i++ {
+		pattern, err = getBytePattern(char, bytesKey)
+		if err == nil {
+			return pattern, nil
+		}
+	}
 
-			pattern, err = findBytePartner(
-				location{x: startX}, char, byte(firstByte), bytes, key.GetDictionary())
+	return nil, err
+}
+
+func getBytePattern(char byte, key bytesKey) ([]byte, error) {
+	bounds := len(key)
+	current := rand.Intn(bounds)
+	startFinding := rand.Intn(bounds)
+	dictionary := key.GetDictionary()
+
+	var pattern []byte
+	var err error
+
+	if startFinding > bounds/2 {
+		for x := startFinding; x >= 0; x-- {
+			pattern, err = findBytePartner(current, x, char, key, dictionary)
 			if err == nil {
-				break
+				return pattern, nil
+			}
+		}
+	} else {
+		for x := startFinding; x < bounds; x++ {
+			pattern, err = findBytePartner(current, x, char, key, dictionary)
+			if err == nil {
+				return pattern, nil
 			}
 		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	return pattern, nil
+
+	return nil, err
 }
 
 func findBytePartner(
-	location location,
+	current int,
+	checked int,
 	difference byte,
-	currentByte byte,
 	bytes []byte,
 	dict dictionary) ([]byte, error) {
-	for x := 0; x < len(bytes); x++ {
-		checkedByte := bytes[x]
-		if match, firstType, secondType := checkByteMatch(
-			difference, currentByte, checkedByte, dict); match {
-			return []byte(fmt.Sprintf(
-				"%s%v%s%v",
-				string(firstType), location.x,
-				string(secondType), x)), nil
-		}
+	if match, firstType, secondType := checkByteMatch(
+		difference, bytes[current], bytes[checked], dict); match {
+		return []byte(fmt.Sprintf(
+			"%s%v%s%v",
+			string(firstType), current,
+			string(secondType), checked)), nil
 	}
+
 	return nil, errorMatchNotFound
 }
 

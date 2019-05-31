@@ -6,6 +6,7 @@ import (
 
 var errorMatchNotFound = errors.New("match not found")
 var errorDecodeNotFound = errors.New("valid decode character not found")
+var errorKeyCastFailed = errors.New("failed to cast key")
 
 const partialStart string = ";[&"
 const partialEnd string = "&];"

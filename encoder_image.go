@@ -20,12 +20,22 @@ type imageKey struct {
 }
 
 const matchFindRetriesImage = 4
+const imageKeySize = 300
+
+var errorImageKeyTooSmall = errors.New("key needs to be larger than 300x300")
 
 func (imageKey) GetVersion() EncoderInfo {
 	return EncoderInfo{
 		Name:    "imgec",
 		Version: "0.2",
 	}
+}
+
+func (k imageKey) CheckValid() (bool, error) {
+	if k.Image.Bounds().Max.X < imageKeySize || k.Image.Bounds().Max.Y < imageKeySize {
+		return false, errorImageKeyTooSmall
+	}
+	return true, nil
 }
 
 func (imageKey) GetDictionaryChars() dictionaryChars {
@@ -105,14 +115,14 @@ func EncodeImage(input []byte, key image.Image) ([]byte, error) {
 }
 
 // EncodeImageStream encodes a stream of bytes against an image key.
-func EncodeImageStream(input io.Reader, key image.Image) *io.PipeReader {
+func EncodeImageStream(input io.Reader, key image.Image) (*io.PipeReader, error) {
 	return encodeStream(
 		input, imageKey{key}, findPixelPattern)
 }
 
 // EncodeImageStreamPartial encodes a byte stream partially against an image key.
 // Arguments take and skip are used to determine how many bytes to take, and skip along a stream.
-func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) *io.PipeReader {
+func EncodeImageStreamPartial(input io.Reader, key image.Image, take int, skip int) (*io.PipeReader, error) {
 	return encodePartialStream(
 		input, imageKey{key}, take, skip, findPixelPattern)
 }
@@ -183,58 +193,90 @@ func getImgDefs(key encodingKey, group decodeGroup) (byte, error) {
 }
 
 func findPixelPattern(char byte, key encodingKey) ([]byte, error) {
-	img, ok := key.(imageKey)
+	imageKey, ok := key.(imageKey)
 	if !ok {
-		return nil, errors.New("failed to cast key")
+		return nil, errorKeyCastFailed
 	}
-	bounds := img.Bounds()
+	var pattern []byte
+	var err error
+
+	for i := 0; i < matchFindRetriesImage; i++ {
+		pattern, err = getPixelPattern(char, imageKey)
+		if err == nil {
+			return pattern, nil
+		}
+	}
+
+	return nil, err
+}
+
+func getPixelPattern(char byte, key imageKey) ([]byte, error) {
+	bounds := key.Bounds()
+	currentX := rand.Intn(bounds.Max.X)
+	currentY := rand.Intn(bounds.Max.Y)
 	startX := rand.Intn(bounds.Max.X)
 	startY := rand.Intn(bounds.Max.Y)
-	firstColor := img.At(startX, startY)
+	dictionary := key.GetDictionary()
 
-	pattern, err := findPixelPartner(
-		location{x: startX, y: startY}, char, firstColor, img, key.GetDictionary())
-	if err != nil && err == errorMatchNotFound {
-		for i := 0; i < matchFindRetriesImage; i++ {
-			startX = rand.Intn(bounds.Max.X)
-			startY = rand.Intn(bounds.Max.Y)
-			firstColor = img.At(startX, startY)
+	pattern := make([]byte, 0)
+	var err error
 
+	currentLocation := location{x: currentX, y: currentY}
+	currentColor := key.At(currentX, currentY)
+
+	changeX := 0
+	changeY := 0
+
+	if startX > bounds.Max.X/2 {
+		changeX = -1
+	} else {
+		changeX = 1
+	}
+	if startY > bounds.Max.Y/2 {
+		changeY = -1
+	} else {
+		changeY = 1
+	}
+
+	for x := startX; (changeX == -1 && x >= 0) ||
+		(changeX == 1 && x < bounds.Max.X); x += changeX {
+		for y := startY; (changeY == -1 && y >= 0) ||
+			(changeY == 1 && y < bounds.Max.Y); y += changeY {
+
+			checkedLocation := location{x, y}
+			checkedColor := key.At(x, y)
 			pattern, err = findPixelPartner(
-				location{x: startX, y: startY}, char, firstColor, img, key.GetDictionary())
+				currentLocation, checkedLocation, char, currentColor, checkedColor, key, dictionary)
 			if err == nil {
-				break
+				return pattern, nil
 			}
 		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	return pattern, nil
+
+	return nil, err
 }
 
 func findPixelPartner(
-	location location,
+	currentLocation location,
+	checkedLocation location,
 	difference byte,
 	currentColor color.Color,
-	img image.Image,
+	checkedColor color.Color,
+	key image.Image,
 	dict dictionary) ([]byte, error) {
-	bounds := img.Bounds()
-	for x := 0; x < bounds.Max.X; x++ {
-		for y := 0; y < bounds.Max.Y; y++ {
-			checkedColor := img.At(x, y)
-			if match, firstType, secondType := checkColorMatch(
-				difference, currentColor, checkedColor, dict); match {
-				firstLocation := getPixelNumber(
-					location.x, location.y, bounds.Max.X)
-				secondLocation := getPixelNumber(x, y, bounds.Max.X)
-				return []byte(fmt.Sprintf(
-					"%s%v%s%v",
-					string(firstType), firstLocation,
-					string(secondType), secondLocation)), nil
-			}
-		}
+	bounds := key.Bounds()
+	if match, firstType, secondType := checkColorMatch(
+		difference, currentColor, checkedColor, dict); match {
+		firstLocation := getPixelNumber(
+			currentLocation.x, currentLocation.y, bounds.Max.X)
+		secondLocation := getPixelNumber(
+			checkedLocation.x, checkedLocation.y, bounds.Max.X)
+		return []byte(fmt.Sprintf(
+			"%s%v%s%v",
+			string(firstType), firstLocation,
+			string(secondType), secondLocation)), nil
 	}
+
 	return nil, errorMatchNotFound
 }
 

@@ -2,6 +2,7 @@ package decouplet
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -104,7 +105,7 @@ func TestEncodeImageConcurrent(t *testing.T) {
 	}
 	msg := []byte("Test this message and see it stream")
 	input := bytes.NewReader(msg)
-	reader := EncodeImageStream(input, image)
+	reader, err := EncodeImageStream(input, image)
 	if err != nil {
 		t.Error(err)
 	}
@@ -129,7 +130,10 @@ func TestEncodeImageConcurrentPartial(t *testing.T) {
 	skip := 3
 	msg := []byte("Test this message and see it stream, using partial encoding.")
 	input := bytes.NewReader(msg)
-	reader := EncodeImageStreamPartial(input, image, take, skip)
+	reader, err := EncodeImageStreamPartial(input, image, take, skip)
+	if err != nil {
+		fmt.Println(err)
+	}
 	newReader, err := DecodeImageStreamPartial(reader, image)
 	if err != nil {
 		t.Error(err)
@@ -140,4 +144,43 @@ func TestEncodeImageConcurrentPartial(t *testing.T) {
 		t.Log("bytes are not equal")
 		t.Fail()
 	}
+}
+
+func TestImageImagePPM(t *testing.T) {
+	file, err := os.Open("images/body.bin")
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	key, err := LoadImage("images/test.png")
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	reader, err := EncodeImageStream(file, key)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	key2, err := LoadImage("images/image.jpg")
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	decoded, err := DecodeImageStream(reader, key2)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	data, err := ioutil.ReadAll(decoded)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	err = ioutil.WriteFile("images/body.ecb.bin", data, 0644)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
 }
