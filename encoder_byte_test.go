@@ -30,13 +30,14 @@ func TestByteMessage(t *testing.T) {
 	originalMessage :=
 		"!!**_-+Test THIS bigger message with More Symbols" +
 			"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@"
+	key := []byte("Test encodingKey!@# $Aaaaaallgglglmefmogaloehkogpeloskoge ekgogjwogkl 2346923052306235023060923503289362305028602395026023950260235028602597235923")
 	newMessage, err := EncodeBytes(
-		[]byte(originalMessage), []byte("Test encodingKey!@# $"))
+		[]byte(originalMessage), key)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(string(newMessage))
-	message, err := DecodeBytes(newMessage, []byte("Test encodingKey!@# $"))
+	message, err := DecodeBytes(newMessage, key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -266,45 +267,6 @@ func TestImageBytePPM(t *testing.T) {
 		fmt.Println(err)
 	}
 	decoded, err := DecodeBytesStream(reader, key2)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	data, err := ioutil.ReadAll(decoded)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	err = ioutil.WriteFile("images/body.ecb.bin", data, 0644)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-
-}
-
-func TestImageImagePPM(t *testing.T) {
-	file, err := os.Open("images/body.bin")
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	key, err := LoadImage("images/gopher.png")
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	reader, err := EncodeImageStream(file, key)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	key2, err := LoadImage("images/test.png")
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	decoded, err := DecodeImageStream(reader, key2)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()

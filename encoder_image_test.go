@@ -145,3 +145,42 @@ func TestEncodeImageConcurrentPartial(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestImageImagePPM(t *testing.T) {
+	file, err := os.Open("images/body.bin")
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	key, err := LoadImage("images/test.png")
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	reader, err := EncodeImageStream(file, key)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	key2, err := LoadImage("images/image.jpg")
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	decoded, err := DecodeImageStream(reader, key2)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	data, err := ioutil.ReadAll(decoded)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	err = ioutil.WriteFile("images/body.ecb.bin", data, 0644)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+}
