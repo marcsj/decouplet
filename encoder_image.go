@@ -224,52 +224,31 @@ func getPixelPattern(char byte, key imageKey) ([]byte, error) {
 	currentLocation := location{x: currentX, y: currentY}
 	currentColor := key.At(currentX, currentY)
 
+	changeX := 0
+	changeY := 0
+
 	if startX > bounds.Max.X/2 {
-		for x := startX; x >= 0; x-- {
-			if startY > bounds.Max.Y/2 {
-				for y := startY; y >= 0; y-- {
-					checkedLocation := location{x, y}
-					checkedColor := key.At(x, y)
-					pattern, err = findPixelPartner(
-						currentLocation, checkedLocation, char, currentColor, checkedColor, key, dictionary)
-					if err == nil {
-						return pattern, nil
-					}
-				}
-			} else {
-				for y := startY; y < bounds.Max.Y; y++ {
-					checkedLocation := location{x, y}
-					checkedColor := key.At(x, y)
-					pattern, err = findPixelPartner(
-						currentLocation, checkedLocation, char, currentColor, checkedColor, key, dictionary)
-					if err == nil {
-						return pattern, nil
-					}
-				}
-			}
-		}
+		changeX = -1
 	} else {
-		for x := startX; x < bounds.Max.X; x++ {
-			if startY > bounds.Max.Y/2 {
-				for y := startY; y >= 0; y-- {
-					checkedLocation := location{x, y}
-					checkedColor := key.At(x, y)
-					pattern, err = findPixelPartner(
-						currentLocation, checkedLocation, char, currentColor, checkedColor, key, dictionary)
-					if err == nil {
-						return pattern, nil
-					}
-				}
-			} else {
-				for y := startY; y < bounds.Max.Y; y++ {
-					checkedLocation := location{x, y}
-					checkedColor := key.At(x, y)
-					pattern, err = findPixelPartner(
-						currentLocation, checkedLocation, char, currentColor, checkedColor, key, dictionary)
-					if err == nil {
-						return pattern, nil
-					}
-				}
+		changeX = 1
+	}
+	if startY > bounds.Max.Y/2 {
+		changeY = -1
+	} else {
+		changeY = 1
+	}
+
+	for x := startX; (changeX == -1 && x >= 0) ||
+		(changeX == 1 && x < bounds.Max.X); x += changeX {
+		for y := startY; (changeY == -1 && y >= 0) ||
+			(changeY == 1 && y < bounds.Max.Y); y += changeY {
+
+			checkedLocation := location{x, y}
+			checkedColor := key.At(x, y)
+			pattern, err = findPixelPartner(
+				currentLocation, checkedLocation, char, currentColor, checkedColor, key, dictionary)
+			if err == nil {
+				return pattern, nil
 			}
 		}
 	}
