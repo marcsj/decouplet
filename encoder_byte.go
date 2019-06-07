@@ -25,25 +25,25 @@ const minByteKeySize = 64
 
 var errorByteKeyTooShort = errors.New("key is smaller than minimum length of 64 bytes")
 
-func (bytesKey) GetVersion() EncoderInfo {
-	return EncoderInfo{
+func (bytesKey) getVersion() encoderInfo {
+	return encoderInfo{
 		Name:    "byteec",
 		Version: "0.2",
 	}
 }
 
-func (k bytesKey) CheckValid() (bool, error) {
+func (k bytesKey) checkValid() (bool, error) {
 	if len(k) < minByteKeySize {
 		return false, errorByteKeyTooShort
 	}
 	return true, nil
 }
 
-func (bytesKey) GetDictionaryChars() dictionaryChars {
-	return dictionaryChars("abcdefghijk")
+func (bytesKey) getDictionarySet() dictionarySet {
+	return dictionarySet("abcdefghijk")
 }
 
-func (bytesKey) GetDictionary() dictionary {
+func (bytesKey) getDictionary() dictionary {
 	return dictionary{
 		decoders: []decodeRef{
 			{
@@ -134,7 +134,7 @@ func DecodeBytesStreamPartial(input io.Reader, key []byte) (*io.PipeReader, erro
 
 // AnalyzeBytesKey takes a slice of bytes and analyzes its scale of usefulness at encoding.
 func AnalyzeBytesKey(key []byte) (scale int) {
-	dict := bytesKey(key).GetDictionary()
+	dict := bytesKey(key).getDictionary()
 	found := 0.0
 	for i := 0; i < 255; i++ {
 		perByte := 0.0
@@ -155,13 +155,13 @@ func AnalyzeBytesKey(key []byte) (scale int) {
 
 func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 	if len(group.place) < 2 {
-		return 0, errors.New("decode group missing locations")
+		return 0, errorDecodeGroup
 	}
 	bytes, ok := key.(bytesKey)
 	if !ok {
-		return 0, errors.New("failed to cast key")
+		return 0, errorKeyCastFailed
 	}
-	dict := key.GetDictionary()
+	dict := key.getDictionary()
 
 	loc1, err := strconv.Atoi(group.place[0])
 	if err != nil {
@@ -179,7 +179,7 @@ func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 			if len(bytes) >= loc1 {
 				change1 = bytes[loc1] + g.amount
 			} else {
-				return 0, errors.New("decode error")
+				return 0, errorDecodeGeneric
 			}
 		}
 	}
@@ -188,7 +188,7 @@ func getByteDefs(key encodingKey, group decodeGroup) (byte, error) {
 			if len(bytes) >= loc2 {
 				change2 = bytes[loc2] + g.amount
 			} else {
-				return 0, errors.New("decode error")
+				return 0, errorDecodeGeneric
 			}
 		}
 	}
@@ -217,7 +217,7 @@ func getBytePattern(char byte, key bytesKey) ([]byte, error) {
 	bounds := len(key)
 	current := rand.Intn(bounds)
 	startFinding := rand.Intn(bounds)
-	dictionary := key.GetDictionary()
+	dictionary := key.getDictionary()
 
 	var pattern []byte
 	var err error

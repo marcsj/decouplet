@@ -24,25 +24,25 @@ const imageKeySize = 300
 
 var errorImageKeyTooSmall = errors.New("key needs to be larger than 300x300")
 
-func (imageKey) GetVersion() EncoderInfo {
-	return EncoderInfo{
+func (imageKey) getVersion() encoderInfo {
+	return encoderInfo{
 		Name:    "imgec",
 		Version: "0.2",
 	}
 }
 
-func (k imageKey) CheckValid() (bool, error) {
+func (k imageKey) checkValid() (bool, error) {
 	if k.Image.Bounds().Max.X < imageKeySize || k.Image.Bounds().Max.Y < imageKeySize {
 		return false, errorImageKeyTooSmall
 	}
 	return true, nil
 }
 
-func (imageKey) GetDictionaryChars() dictionaryChars {
-	return dictionaryChars("rgbacmyk")
+func (imageKey) getDictionarySet() dictionarySet {
+	return dictionarySet("rgbacmyk")
 }
 
-func (imageKey) GetDictionary() dictionary {
+func (imageKey) getDictionary() dictionary {
 	return dictionary{
 		decoders: []decodeRef{
 			{
@@ -153,7 +153,7 @@ func getImgDefs(key encodingKey, group decodeGroup) (byte, error) {
 	if !ok {
 		return 0, errors.New("failed to cast key")
 	}
-	dict := key.GetDictionary()
+	dict := key.getDictionary()
 
 	loc1, err := strconv.Atoi(group.place[0])
 	if err != nil {
@@ -216,7 +216,7 @@ func getPixelPattern(char byte, key imageKey) ([]byte, error) {
 	currentY := rand.Intn(bounds.Max.Y)
 	startX := rand.Intn(bounds.Max.X)
 	startY := rand.Intn(bounds.Max.Y)
-	dictionary := key.GetDictionary()
+	dictionary := key.getDictionary()
 
 	pattern := make([]byte, 0)
 	var err error
