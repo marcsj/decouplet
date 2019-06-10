@@ -21,28 +21,39 @@ type imageKey struct {
 
 const matchFindRetriesImage = 4
 const imageKeySize = 300
+const imageCheckedMax = 46368
 
 var errorImageKeyTooSmall = errors.New("key needs to be larger than 300x300")
 
-func (imageKey) GetVersion() EncoderInfo {
-	return EncoderInfo{
+func (imageKey) getVersion() encoderInfo {
+	return encoderInfo{
 		Name:    "imgec",
 		Version: "0.2",
 	}
 }
 
-func (k imageKey) CheckValid() (bool, error) {
+func (k imageKey) checkVariance() int {
+	colorMap := map[color.Color]bool{}
+	for x := 0; x < k.Image.Bounds().Max.X; x++ {
+		for y := 0; y < k.Image.Bounds().Max.Y; y++ {
+			colorMap[k.At(x, y)] = true
+		}
+	}
+	return int((float32(len(colorMap)) / imageCheckedMax) * 100)
+}
+
+func (k imageKey) checkValid() (bool, error) {
 	if k.Image.Bounds().Max.X < imageKeySize || k.Image.Bounds().Max.Y < imageKeySize {
 		return false, errorImageKeyTooSmall
 	}
 	return true, nil
 }
 
-func (imageKey) GetDictionaryChars() dictionaryChars {
-	return dictionaryChars("rgbacmyk")
+func (imageKey) getDictionarySet() dictionarySet {
+	return dictionarySet("rgbacmyk")
 }
 
-func (imageKey) GetDictionary() dictionary {
+func (imageKey) getDictionary() dictionary {
 	return dictionary{
 		decoders: []decodeRef{
 			{
@@ -153,7 +164,7 @@ func getImgDefs(key encodingKey, group decodeGroup) (byte, error) {
 	if !ok {
 		return 0, errors.New("failed to cast key")
 	}
-	dict := key.GetDictionary()
+	dict := key.getDictionary()
 
 	loc1, err := strconv.Atoi(group.place[0])
 	if err != nil {
@@ -216,7 +227,7 @@ func getPixelPattern(char byte, key imageKey) ([]byte, error) {
 	currentY := rand.Intn(bounds.Max.Y)
 	startX := rand.Intn(bounds.Max.X)
 	startY := rand.Intn(bounds.Max.Y)
-	dictionary := key.GetDictionary()
+	dictionary := key.getDictionary()
 
 	pattern := make([]byte, 0)
 	var err error

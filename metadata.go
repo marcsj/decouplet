@@ -6,14 +6,12 @@ import (
 	"fmt"
 )
 
-type EncoderInfo struct {
+type encoderInfo struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 }
 
-var EncodersList []EncoderInfo
-
-func (i EncoderInfo) GetEncoderString() (string, error) {
+func (i encoderInfo) getEncoderString() (string, error) {
 	return fmt.Sprintf(
 		"[dcplt-%s-%s]",
 		i.Name,
@@ -21,8 +19,8 @@ func (i EncoderInfo) GetEncoderString() (string, error) {
 	), nil
 }
 
-func (i EncoderInfo) CheckEncoder(message *[]byte) error {
-	meta, err := i.GetEncoderString()
+func (i encoderInfo) checkEncoder(message *[]byte) error {
+	meta, err := i.getEncoderString()
 	if err != nil {
 		return err
 	}
@@ -34,8 +32,8 @@ func (i EncoderInfo) CheckEncoder(message *[]byte) error {
 	return errors.New("encoder version does not match")
 }
 
-func (i EncoderInfo) WriteVersion() ([]byte, error) {
-	meta, err := i.GetEncoderString()
+func (i encoderInfo) writeVersion() ([]byte, error) {
+	meta, err := i.getEncoderString()
 	if err != nil {
 		return nil, err
 	}

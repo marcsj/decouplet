@@ -10,27 +10,29 @@ import (
 )
 
 func TestEncodeBytes(t *testing.T) {
-	newMessage, err := EncodeBytes([]byte("Test"), []byte("tEst Key3#$T234Alklgn"))
+	key := make([]byte, 256)
+	_, err := rand.Read(key)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	newMessage, err := EncodeBytes([]byte("Test"), key)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(string(newMessage))
 }
 
-func TestDecoderBytes(t *testing.T) {
-	message, err := DecodeBytes(
-		[]byte("[dcplt-byteec-0.2]e12i16d17k11k17g11k12e4"), []byte("tEst Key3#$"))
+func TestByteMessage(t *testing.T) {
+	key := make([]byte, 256)
+	_, err := rand.Read(key)
 	if err != nil {
 		t.Error(err)
+		t.FailNow()
 	}
-	t.Log(string(message))
-}
-
-func TestByteMessage(t *testing.T) {
 	originalMessage :=
 		"!!**_-+Test THIS bigger message with More Symbols" +
 			"@$_()#$%^#@!~#2364###$%! *(#$%)^@#%$@"
-	key := []byte("Test encodingKey!@# $Aaaaaallgglglmefmogaloehkogpeloskoge ekgogjwogkl 2346923052306235023060923503289362305028602395026023950260235028602597235923")
 	newMessage, err := EncodeBytes(
 		[]byte(originalMessage), key)
 	if err != nil {
@@ -48,6 +50,12 @@ func TestByteMessage(t *testing.T) {
 }
 
 func TestByteMessage_Byte(t *testing.T) {
+	key := make([]byte, 256)
+	_, err := rand.Read(key)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
 	imageFile, err := os.Open("images/test.jpg")
 	if err != nil {
 		t.Error(err)
@@ -62,11 +70,6 @@ func TestByteMessage_Byte(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	key := []byte(
-		"$#%#%@#$@$)*^_#@$*^)@$)@#" +
-			"^@#%@#)^Test byte encodingKey!@#$" +
-			"^GEWg gwefwgwef _#$%@#$%L",
-	)
 	t.Log("Length of original:", len(fileBytes))
 	newMessage, err := EncodeBytes(fileBytes, key)
 	if err != nil {
@@ -89,7 +92,12 @@ func TestByteMessage_Byte(t *testing.T) {
 }
 
 func TestEncodeBytesConcurrent(t *testing.T) {
-	key := []byte("tEst Key3#$!@&*()[]:;")
+	key := make([]byte, 256)
+	_, err := rand.Read(key)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
 	msg := []byte("Test this message and see it stream")
 	input := bytes.NewReader(msg)
 	reader, err := EncodeBytesStream(input, key)
@@ -109,7 +117,12 @@ func TestEncodeBytesConcurrent(t *testing.T) {
 }
 
 func TestEncodeBytesConcurrentPartial(t *testing.T) {
-	key := []byte("tEst Key3#$!@&*()[]:;")
+	key := make([]byte, 256)
+	_, err := rand.Read(key)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
 	msg := []byte("Test this message and see it stream and be partially encoded! here")
 	take := 1
 	skip := 3
@@ -129,32 +142,6 @@ func TestEncodeBytesConcurrentPartial(t *testing.T) {
 		t.Log("bytes are not equal")
 		t.Fail()
 	}
-}
-
-func TestAnalyzeBytesKey(t *testing.T) {
-	badKey := []byte("badkey")
-	scale := AnalyzeBytesKey(badKey)
-	t.Log("bad key analysis:", scale)
-	if scale > 10 {
-		t.Log("small, insufficient keys usually register under 10")
-		t.Fail()
-	}
-	goodKey := []byte("This is a Key$%@#$@^^%$&$%%^*{})([p[]Should _-!`~")
-	scale = AnalyzeBytesKey(goodKey)
-	t.Log("good key analysis:", scale)
-	if scale < 10 {
-		t.Log("good keys should be 10 or over")
-		t.Fail()
-	}
-	greatKey := []byte(
-		"GREAFgolanVMb elefwoejgitoiqwaz12353445789870-0=)" +
-			"(_#@$^#$&$%&$*$&$0238959_=2340+=12!@#$%^&*(()")
-	scale = AnalyzeBytesKey(greatKey)
-	if scale < 20 {
-		t.Log("great keys should be 20 or over(not really a hard number)")
-		t.Fail()
-	}
-	t.Log("great key analysis:", scale)
 }
 
 // Examples
@@ -245,6 +232,9 @@ func ExampleDecodeBytesStreamPartial() {
 }
 
 func TestImageBytePPM(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	file, err := os.Open("images/body.bin")
 	if err != nil {
 		t.Error(err)

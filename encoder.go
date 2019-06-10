@@ -8,10 +8,11 @@ import (
 )
 
 type encodingKey interface {
-	GetVersion() EncoderInfo
-	CheckValid() (bool, error)
-	GetDictionaryChars() dictionaryChars
-	GetDictionary() dictionary
+	getVersion() encoderInfo
+	checkValid() (bool, error)
+	getDictionarySet() dictionarySet
+	getDictionary() dictionary
+	checkVariance() int
 }
 
 func encode(
@@ -19,11 +20,11 @@ func encode(
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
 ) ([]byte, error) {
-	if valid, err := key.CheckValid(); !valid {
+	if valid, err := key.checkValid(); !valid {
 		return nil, err
 	}
 
-	b, err := key.GetVersion().WriteVersion()
+	b, err := key.getVersion().writeVersion()
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func encodeStream(
 	key encodingKey,
 	encoder func(byte, encodingKey) ([]byte, error),
 ) (*io.PipeReader, error) {
-	if valid, err := key.CheckValid(); !valid {
+	if valid, err := key.checkValid(); !valid {
 		return nil, err
 	}
 	reader, writer := io.Pipe()
@@ -92,7 +93,7 @@ func encodePartialStream(
 	encoder func(byte, encodingKey) ([]byte, error),
 ) (*io.PipeReader, error) {
 	reader, writer := io.Pipe()
-	if valid, err := key.CheckValid(); !valid {
+	if valid, err := key.checkValid(); !valid {
 		return nil, err
 	}
 

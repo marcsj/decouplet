@@ -7,6 +7,8 @@ import (
 var errorMatchNotFound = errors.New("match not found")
 var errorDecodeNotFound = errors.New("valid decode character not found")
 var errorKeyCastFailed = errors.New("failed to cast key")
+var errorDecodeGeneric = errors.New("decode error")
+var errorDecodeGroup = errors.New("decode groups missing locations")
 
 const partialStart string = ";[&"
 const partialEnd string = "&];"
@@ -14,13 +16,7 @@ const partialEnd string = "&];"
 var partialStartBytes = []byte(partialStart)
 var partialEndBytes = []byte(partialEnd)
 
-type encoderType string
-
-type dictionaryChars string
-
-type byteGroup struct {
-	bytes []byte
-}
+type dictionarySet string
 
 type decodeGroup struct {
 	kind  []uint8
@@ -37,7 +33,7 @@ type decodeRef struct {
 }
 
 type splitInfo struct {
-	chars  dictionaryChars
+	chars  dictionarySet
 	groups int
 }
 
@@ -46,7 +42,7 @@ type location struct {
 	y int
 }
 
-func (chars dictionaryChars) checkIn(a byte) bool {
+func (chars dictionarySet) checkIn(a byte) bool {
 	for i := range chars {
 		if a == chars[i] {
 			return true

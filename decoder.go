@@ -12,16 +12,16 @@ func decode(
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output []byte, err error) {
-	if valid, err := key.CheckValid(); !valid {
+	if valid, err := key.checkValid(); !valid {
 		return nil, err
 	}
 
-	err = key.GetVersion().CheckEncoder(&input)
+	err = key.getVersion().checkEncoder(&input)
 	if err != nil {
 		return nil, err
 	}
 	decodeGroups, err := findDecodeGroups(
-		input, key.GetDictionaryChars(), groups)
+		input, key.getDictionarySet(), groups)
 	if err != nil {
 		return nil, err
 	}
@@ -35,14 +35,14 @@ func decodeStream(
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output *io.PipeReader, err error) {
-	if valid, err := key.CheckValid(); !valid {
+	if valid, err := key.checkValid(); !valid {
 		return nil, err
 	}
 
 	reader, writer := io.Pipe()
 
 	go func() {
-		chars := key.GetDictionaryChars()
+		chars := key.getDictionarySet()
 		defer writer.Close()
 
 		charSplit := splitInfo{chars: chars, groups: groups}
@@ -89,7 +89,7 @@ func decodePartialStream(
 	groups int,
 	decodeFunc func(encodingKey, decodeGroup) (byte, error),
 ) (output *io.PipeReader, err error) {
-	if valid, err := key.CheckValid(); !valid {
+	if valid, err := key.checkValid(); !valid {
 		return nil, err
 	}
 
@@ -152,7 +152,7 @@ func writeDecodeBuffer(
 	key encodingKey,
 	writer io.Writer,
 ) error {
-	decodeGroups, err := findDecodeGroups(buffer, key.GetDictionaryChars(), groups)
+	decodeGroups, err := findDecodeGroups(buffer, key.getDictionarySet(), groups)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func writeDecodeBuffer(
 
 func findDecodeGroups(
 	input []byte,
-	characters dictionaryChars,
+	characters dictionarySet,
 	numGroups int,
 ) (decodeGroups []decodeGroup, err error) {
 	if !characters.checkIn(input[0]) {

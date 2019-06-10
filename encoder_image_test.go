@@ -147,6 +147,9 @@ func TestEncodeImageConcurrentPartial(t *testing.T) {
 }
 
 func TestImageImagePPM(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	file, err := os.Open("images/body.bin")
 	if err != nil {
 		t.Error(err)
