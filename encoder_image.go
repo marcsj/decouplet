@@ -21,6 +21,7 @@ type imageKey struct {
 
 const matchFindRetriesImage = 4
 const imageKeySize = 300
+const imageCheckedMax = 46368
 
 var errorImageKeyTooSmall = errors.New("key needs to be larger than 300x300")
 
@@ -29,6 +30,16 @@ func (imageKey) getVersion() encoderInfo {
 		Name:    "imgec",
 		Version: "0.2",
 	}
+}
+
+func (k imageKey) checkVariance() int {
+	colorMap := map[color.Color]bool{}
+	for x := 0; x < k.Image.Bounds().Max.X; x++ {
+		for y := 0; y < k.Image.Bounds().Max.Y; y++ {
+			colorMap[k.At(x, y)] = true
+		}
+	}
+	return int((float32(len(colorMap)) / imageCheckedMax) * 100)
 }
 
 func (k imageKey) checkValid() (bool, error) {

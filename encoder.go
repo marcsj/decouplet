@@ -12,6 +12,7 @@ type encodingKey interface {
 	checkValid() (bool, error)
 	getDictionarySet() dictionarySet
 	getDictionary() dictionary
+	checkVariance() int
 }
 
 func encode(

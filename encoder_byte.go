@@ -22,6 +22,7 @@ type bytesKey []byte
 
 const matchFindRetriesByte = 16
 const minByteKeySize = 64
+const byteCheckedMax = 255
 
 var errorByteKeyTooShort = errors.New("key is smaller than minimum length of 64 bytes")
 
@@ -37,6 +38,14 @@ func (k bytesKey) checkValid() (bool, error) {
 		return false, errorByteKeyTooShort
 	}
 	return true, nil
+}
+
+func (k bytesKey) checkVariance() int {
+	charMap := map[byte]bool{}
+	for _, b := range k {
+		charMap[b] = true
+	}
+	return int((float32(len(charMap)) / byteCheckedMax) * 100)
 }
 
 func (bytesKey) getDictionarySet() dictionarySet {
